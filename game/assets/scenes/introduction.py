@@ -10,7 +10,7 @@ class IntroductionScene(Scene):
         super().__init__(screen, clock)
         self._game = game
         self._dialogue = DialogueManager(screen, clock)
-        self.main_background = format_background(self.screen, "office_main.png")
+        self.main_background = format_background(self.screen, "archive_background.png")
 
 
     def update(self) -> str | None:

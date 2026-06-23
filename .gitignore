@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+game/assets/.DS_Store
+game/.DS_Store
+game/assets/sprites/.DS_Store
+.DS_Store
+game/assets/sprites/.DS_Store
+.DS_Store

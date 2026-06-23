@@ -43,8 +43,8 @@ class MenuScene(Scene):
         self.start_sound.set_volume(0.5)
 
         # backgrounds
-        self.main_background = format_background(self.screen, "menu.png")
-        self.info_background = format_background(self.screen, "button2.png")
+        self.main_background = format_background(self.screen, "main_menu.png")
+        self.info_background = format_background(self.screen, "main_menu.png")
 
         # adjust these parameters ONLY, to reposition buttons and popup:
         btn_w, btn_h = int(Button.default_button_width * 1.1), Button.default_button_height
@@ -64,7 +64,7 @@ class MenuScene(Scene):
         self.spacebar = pygame.image.load(os.path.join(UI_PATH, "spacebar.png")).convert_alpha()
         self.spacebar = pygame.transform.scale(self.spacebar, (200, 70))
         self.info = pygame.image.load(os.path.join(UI_PATH, "info.png")).convert()
-        self.info = pygame.transform.scale(self.info, self.screen.get_size())
+        self.info = pygame.transform.scale(self.main_background, self.screen.get_size())
 
 
     def toggle_vhs(self):
@@ -81,7 +81,7 @@ class MenuScene(Scene):
         elif self.state == MenuState.CONTINUE:
             self.state = MenuState.CHOICES
             self._game.load()
-            return "office"
+            return "archive"
         elif self.state == MenuState.QUIT:
             return "quit"
         return None
@@ -108,13 +108,7 @@ class MenuScene(Scene):
 
         # display text:
         text = [
-            "INSTRUCTION 1 BLAH BLAH BLAH BLAH BLAH",
-            "",
-            "INSTRUCTION 2 BLAH BLAH BLAH BLAH BLAH",
-            "",
-            "",
-            "To pause or restart the level, press the spacebar:",
-            "",
+            "No information here yet",
         ]
         for i, line in enumerate(text):
             self.screen.blit(FONT.render(line,
@@ -123,12 +117,12 @@ class MenuScene(Scene):
         
         # display key graphics:
         space_x, space_y = 572, 260
-        self.screen.blit(self.spacebar, (space_x, space_y))
-        self.screen.blit(FONT.render("space", False, (0, 0, 0)), (space_x+30, space_y+20))
+        # self.screen.blit(self.spacebar, (space_x, space_y))
+        # self.screen.blit(FONT.render("space", False, (0, 0, 0)), (space_x+30, space_y+20))
 
     def render_settings_screen(self):
         for _ in self.handle_events([self.back_button, self.toggle_vhs_button]): pass
-        self.screen.blit(self.info, (0, 0))
+        self.screen.blit(self.main_background, (0, 0))
         overlay = pygame.Surface((SCREEN_WIDTH-BORDER*2, SCREEN_HEIGHT-BORDER*5), pygame.SRCALPHA)
         pygame.draw.rect(overlay, (255, 255, 255, 150), (overlay.get_rect()))
         self.screen.blit(overlay, (BORDER, BORDER*3+10))

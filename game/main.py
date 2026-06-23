@@ -11,7 +11,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 from scene_manager import Fade, SceneManager
 from vhs_effect import VHSEffect
 from assets.scenes.menu import MenuScene
-from assets.scenes.office import OfficeScene
+from assets.scenes.archive import ArchiveScene
 from assets.scenes.scribe import ScribeScene
 from assets.scenes.introduction import IntroductionScene
 from game_manager import NewGame
@@ -28,7 +28,7 @@ fade = Fade(screen, clock, present=_present)
 game = NewGame()
 scene_manager = SceneManager()
 scene_manager.scenes["menu"] = MenuScene(screen, clock, game, vhs=vhs)
-scene_manager.scenes["office"] = OfficeScene(screen, clock)
+scene_manager.scenes["archive"] = ArchiveScene(screen, clock)
 scene_manager.scenes["scribe"] = ScribeScene(screen, clock, game)
 scene_manager.scenes["introduction"] = IntroductionScene(screen, clock, game)
 
