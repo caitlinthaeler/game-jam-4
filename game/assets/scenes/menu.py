@@ -103,7 +103,7 @@ class MenuScene(Scene):
 
         # display text:
         text = [
-            "No information here yet",
+            "We love illuminated manuscripts!",
         ]
         for i, line in enumerate(text):
             self.screen.blit(FONT.render(line,
