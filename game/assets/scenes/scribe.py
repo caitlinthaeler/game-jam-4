@@ -255,7 +255,6 @@ class ScribeScene(Scene):
                 next_state="archive",
                 animation=Assets.animations.archive_icon,
                 x=SCREEN_WIDTH - 64, y=BORDER,
-                text="back",
                 hover_transforms=[scale_hover(1.1)],
             ),
         ]
@@ -501,7 +500,7 @@ class ScribeScene(Scene):
             return self._hint_surfs[level]
 
         surf = pygame.Surface((HINT_PAGE_W, HINT_PAGE_H), pygame.SRCALPHA)
-        surf.fill((245, 235, 200, 255))
+        # surf.fill((245, 235, 200, 255))
 
         # Pick the right puzzle source
         if level == game_data.current_level:

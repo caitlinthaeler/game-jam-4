@@ -48,7 +48,7 @@ class MenuScene(Scene):
 
         # adjust these parameters ONLY, to reposition buttons and popup:
         btn_w, btn_h = int(Button.default_button_width * 1.1), Button.default_button_height
-        button_x, button_y, button_y_buffer = 240, 386 - btn_h // 2, 58
+        button_x, button_y, button_y_buffer = 240, 406 - btn_h // 2, 58
         self.buttons = [
             Button(self.screen, MenuState.NEW_GAME, button_x, button_y, "Start", width=btn_w, height=btn_h),
             Button(self.screen, MenuState.CONTINUE, SCREEN_WIDTH-button_x-btn_w, button_y, "Continue", width=btn_w, height=btn_h, sound=self.start_sound),

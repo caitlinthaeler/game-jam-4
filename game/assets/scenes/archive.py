@@ -125,10 +125,7 @@ class ArchiveScene(Scene):
                 animation=Assets.animations.paint_icon,
                 x=SCREEN_WIDTH - BORDER, y=BORDER,
                 anchor="topright",
-                text="scribe",
-                text_offset=(-10, 40),
-                text_colour=(255, 255, 255),
-                hover_transforms=[scale_hover(1.1)],
+                hover_transforms=[ scale_hover(1.1)],
                 sound=Assets.sounds.page_turning,
             ),
             AnimatedButton(
