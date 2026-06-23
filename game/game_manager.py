@@ -24,6 +24,8 @@ class GameData:
         self.level_snapshots: dict[int, PuzzleData] = {}
         # How many levels exist — set by NewGame after loading level factory map.
         self.num_levels: int = 0
+        # Indices of artefacts the player has permanently unlocked.
+        self.unlocked_artefacts: set[int] = set()
 
 
     def _side_for_level(self, level: int) -> str:
@@ -39,6 +41,13 @@ class GameData:
         """True when advancing to this level requires a physical page turn
         (i.e. every even level > 0, because both pages are filled)."""
         return self.current_level > 0 and self.current_level % 2 == 0
+
+    def is_artefact_unlocked(self, idx: int) -> bool:
+        return idx in self.unlocked_artefacts
+
+    def unlock_artefact(self, idx: int, cost: int):
+        self.total_trust_points -= cost
+        self.unlocked_artefacts.add(idx)
 
     def hint_image(self, level: int | None = None) -> object:
         """Return the current hint Animation for a given level (default: current)."""
@@ -98,11 +107,13 @@ class GameData:
         self.current_puzzle = None
         self.total_trust_points = 0
         self.level_snapshots = {}
+        self.unlocked_artefacts = set()
 
     def _load(self, data: dict):
         self.player_name = data.get("player_name", "Player")
         self.current_level = data.get("current_level", 0)
         self.total_trust_points = data.get("total_trust_points", 0)
+        self.unlocked_artefacts = set(data.get("unlocked_artefacts", []))
         puzzle_data = data.get("current_puzzle")
         self.current_puzzle = PuzzleData.from_dict(puzzle_data) if puzzle_data else None
 
@@ -111,6 +122,7 @@ class GameData:
             "player_name": self.player_name,
             "current_level": self.current_level,
             "total_trust_points": self.total_trust_points,
+            "unlocked_artefacts": list(self.unlocked_artefacts),
             "current_puzzle": self.current_puzzle._to_dict() if self.current_puzzle else None,
         }
 
