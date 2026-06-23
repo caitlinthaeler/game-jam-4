@@ -502,7 +502,7 @@ class ScribeScene(Scene):
             return self._hint_surfs[level]
 
         surf = pygame.Surface((HINT_PAGE_W, HINT_PAGE_H), pygame.SRCALPHA)
-        surf.fill((245, 235, 200, 255))
+        # surf.fill((245, 235, 200, 255))
 
         # Pick the right puzzle source
         if level == game_data.current_level:
