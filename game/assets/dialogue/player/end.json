@@ -1,0 +1,15 @@
+{
+  "id": "end",
+  "lines": [
+    {"speaker": "You", "text": "Time to decide..."},
+    {"speaker": "You", "text": "I've made up my mind."}
+  ],
+  "next": {
+    "type": "choices",
+    "options": [
+      {"text": "Assign Surveyor Bob", "file": "end_bob"},
+      {"text": "Assign Surveyor Dave", "file": "end_dave"},
+      {"text": "Assign Surveyor Michael", "file": "end_michael"}
+    ]
+  }
+}

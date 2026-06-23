@@ -1,0 +1,15 @@
+{
+  "id": "intro",
+  "lines": [
+    {"speaker": "You", "text": "I suppose I can't ignore the new Master of Fetteresso Castle any longer... I need to survey the property again to make his new map."},
+    {"speaker": "You", "text": "In my old age, I won't be able to do this alone."},
+    {"speaker": "You", "text": "I heard that there were a few amateur surveyors in the area. They have submitted their previous surveys of the Fetteresso Estate - I should evaluate them against my old map, and hire the best man for the job."},
+    {"speaker": "You", "text": "I should probably introduce myself first, though. I can use the MAP ICON to navigate the city."},
+    {"speaker": "You", "text": "I should also remember that my map has my signature, and I can fact check their claims using my BOOK."}
+  ],
+  "next": {
+    "type": "exit",
+    "flags_raise": ["intro_seen"],
+    "to": "office"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "default": "intro",
+  "entries": [
+    {
+      "requires_all": ["game_complete"],
+      "requires_none": [],
+      "file": "end"
+    }
+  ]
+}
