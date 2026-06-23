@@ -2,6 +2,7 @@
   "player_name": "Player",
   "current_level": 0,
   "total_trust_points": 0,
+  "unlocked_artefacts": [],
   "current_puzzle": {
     "level": 0,
     "stage": 0,
