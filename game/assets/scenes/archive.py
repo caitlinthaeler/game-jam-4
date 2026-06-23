@@ -1,4 +1,6 @@
-from config import SCREEN_WIDTH, SCREEN_HEIGHT, BORDER, FONT
+import os
+
+from config import SCREEN_WIDTH, SCREEN_HEIGHT, BORDER, FONT, UI_PATH
 from scene_manager import Scene
 from assets_registry import Assets
 from classes import AnimatedButton, get_clicked_button, format_background, scale_hover, draw_label
@@ -7,9 +9,10 @@ from enum import Enum
 from game_manager import game_data
 
 
-ARTEFACT_TABLE_W   = 600
+ARTEFACT_TABLE_W   = 560
 ARTEFACT_TABLE_H   = 150
-ARTEFACT_TABLE_POS = (200, SCREEN_HEIGHT - ARTEFACT_TABLE_H - 25)
+ARTEFACT_TABLE_POS = (SCREEN_WIDTH // 2 - ARTEFACT_TABLE_W // 2,
+                      SCREEN_HEIGHT - ARTEFACT_TABLE_H - 90)
 
 ARTEFACT_ICON_SIZE = 64
 ARTEFACT_FULL_SIZE = 192
@@ -33,38 +36,54 @@ _PANEL_Y = SCREEN_HEIGHT // 2 - _PANEL_H // 2
 
 _ARTEFACT_DEFS = [
     {
-        "title": "Blackadder Charter",
+        "title": "Blackadder Prayerbook",
         "blurb": (
-            "Granted in the reign of William the Lion, this charter records the gift "
-            "of Blackadder lands to the monks of Coldingham Priory. Its faded ink "
-            "bears witness to centuries of careful preservation in the archive."
+            "This prayerbook was made in Paris for Robert Blackadder, who became a "
+            "bishop of Glasgow in the late 15th Century. Manuscripts were often tailored "
+            "to fit the customs of the owner, and Blackadder’s prayerbook highlights multiple "
+            "Scottish saints that would have felt more personally relevant to the area. "
+            "Though contained within their own category of Saint, the Blackadder prayerbook "
+            "contains prayers to a significant number of female saints - complete with a small "
+            "illustration of them. After the completion of the manuscript, St. Kentigerna was "
+            "added in the first page of the prayerbook as a patroness of Lochcailloch."
         ),
         "cost": 5,
     },
     {
-        "title": "Gask Inscription",
+        "title": "Gask Family Charters",
         "blurb": (
-            "Recovered near the Gask Ridge in Perthshire, this stone fragment carries "
-            "a Latin inscription marking the northern extent of Roman military "
-            "operations in ancient Caledonia."
+            "The Gask family (also known as the Oliphants of Gask) were jacobites, and are "
+            "famous for their part in the 18th Century uprisings. These charters date back to "
+            "their role in the medieval period and are found in various monastic records. The "
+            "three Gask family charters in the National Library of Scotland highlight not only "
+            "the ties the Gask family had to royalty, but also illuminate the involvement of "
+            "aristocratic women in land transactions."
         ),
         "cost": 10,
     },
     {
-        "title": "Lesmahagow Register",
+        "title": "Chartulary of Scone Abbey (15th to 16th Century)",
         "blurb": (
-            "A leaf from the thirteenth-century register of Lesmahagow Priory, "
-            "recording teinds paid by local tenants. The hand is an elegant Caroline "
-            "minuscule rarely seen elsewhere in Scottish records."
+            "These documents contain a collection of marginalia; sketch work completed in "
+            "the margins. Such examples found are faces, animals - also found in proper illustration "
+            "alongside richly decorated names of royal men. An earlier chartulary of Scone Abbey is "
+            "present in the National Library of Scotland, and its contents reveal that the scribes "
+            "were able to copy notable information down from it onto the later documents. Something "
+            "that stands out in these documents is the complete, and possibly intentional, absence "
+            "of women."
         ),
-        "cost": 15,
+        "cost": 20,
     },
     {
-        "title": "Scone Chartulary",
+        "title": "Lesmahagow Missal",
         "blurb": (
-            "Compiled at Scone Abbey in the early fourteenth century, this chartulary "
-            "preserves royal confirmations including one bearing the seal of "
-            "Robert I, the Bruce."
+            "These documents contain a collection of marginalia; sketch work completed in "
+            "the margins. Such examples found are faces, animals - also found in proper illustration "
+            "alongside richly decorated names of royal men. An earlier chartulary of Scone Abbey is "
+            "present in the National Library of Scotland, and its contents reveal that the scribes "
+            "were able to copy notable information down from it onto the later documents. Something "
+            "that stands out in these documents is the complete, and possibly intentional, absence "
+            "of women."
         ),
         "cost": 20,
     },
@@ -239,50 +258,82 @@ class ArchiveScene(Scene):
     def _draw_modal(self, idx: int):
         art = self._artefacts[idx]
 
+        panel_w = min(720, SCREEN_WIDTH - BORDER * 6)
+        text_area_width = panel_w - (ARTEFACT_FULL_SIZE + 18 + 14 + 18)
+        title_font = pygame.font.Font(os.path.join(UI_PATH, "pixelfont.ttf"), 24)
+        body_font = self._choose_modal_font(art["blurb"], text_area_width)
+        hint_font = pygame.font.Font(os.path.join(UI_PATH, "pixelfont.ttf"), 14)
+
+        body_lines = self._wrap_text(art["blurb"], body_font, text_area_width)
+        title_surf = title_font.render(art["title"], True, (55, 28, 8))
+
+        title_h = title_font.get_height()
+        body_line_h = body_font.get_height() + 3
+        hint_h = hint_font.get_height()
+        text_height = title_h + 10 + len(body_lines) * body_line_h + 38 + hint_h
+        panel_h = max(ARTEFACT_FULL_SIZE + 50, text_height + 52)
+        panel_x = (SCREEN_WIDTH - panel_w) // 2
+        panel_y = max((SCREEN_HEIGHT - panel_h) // 2, BORDER * 2)
+
         # Semi-transparent dark overlay
         overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 185))
         self.screen.blit(overlay, (0, 0))
 
         # Panel background
-        panel = pygame.Rect(_PANEL_X, _PANEL_Y, _PANEL_W, _PANEL_H)
+        panel = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
         pygame.draw.rect(self.screen, (245, 235, 200), panel, border_radius=6)
         pygame.draw.rect(self.screen, (140, 110, 70), panel, 2, border_radius=6)
 
         # Artefact image — left side, vertically centred
-        img_x = _PANEL_X + 18
-        img_y = _PANEL_Y + (_PANEL_H - ARTEFACT_FULL_SIZE) // 2
-        anim  = art["unlocked_anim"]
-        img   = pygame.transform.scale(anim.current_frame.image,
-                                        (ARTEFACT_FULL_SIZE, ARTEFACT_FULL_SIZE))
+        img_x = panel_x + 18
+        img_y = panel_y + (panel_h - ARTEFACT_FULL_SIZE) // 2
+        anim = art["unlocked_anim"]
+        img = pygame.transform.scale(anim.current_frame.image,
+                                      (ARTEFACT_FULL_SIZE, ARTEFACT_FULL_SIZE))
         self.screen.blit(img, (img_x, img_y))
 
         # Title + wrapped blurb — right of image
         tx = img_x + ARTEFACT_FULL_SIZE + 18
-        tw = _PANEL_X + _PANEL_W - tx - 14
-        ty = _PANEL_Y + 20
-        title_surf = FONT.render(art["title"], True, (55, 28, 8))
+        tw = panel_x + panel_w - tx - 14
+        ty = panel_y + 20
         self.screen.blit(title_surf, (tx, ty))
-        self._draw_wrapped(art["blurb"], tx, ty + title_surf.get_height() + 10, tw, (70, 45, 18))
+        self._draw_wrapped(art["blurb"], tx, ty + title_h + 10, tw, (70, 45, 18), body_font)
 
         # Dismiss hint
-        hint = FONT.render("Esc or click outside to close", True, (130, 105, 72))
+        hint = hint_font.render("Esc or click outside to close", True, (130, 105, 72))
         self.screen.blit(hint, hint.get_rect(centerx=panel.centerx, bottom=panel.bottom - 10))
 
-    def _draw_wrapped(self, text: str, x: int, y: int, max_w: int, colour: tuple):
-        line_h = FONT.get_height() + 3
-        line   = ""
+    def _wrap_text(self, text: str, font: pygame.font.Font, max_w: int) -> list[str]:
+        lines = []
+        line = ""
         for word in text.split():
             test = (line + " " + word).strip()
-            if FONT.size(test)[0] <= max_w:
+            if font.size(test)[0] <= max_w:
                 line = test
             else:
                 if line:
-                    self.screen.blit(FONT.render(line, True, colour), (x, y))
-                    y += line_h
+                    lines.append(line)
                 line = word
         if line:
-            self.screen.blit(FONT.render(line, True, colour), (x, y))
+            lines.append(line)
+        return lines
+
+    def _choose_modal_font(self, text: str, max_w: int) -> pygame.font.Font:
+        sizes = [20, 18, 16, 14]
+        for size in sizes:
+            font = pygame.font.Font(os.path.join(UI_PATH, "pixelfont.ttf"), size)
+            lines = self._wrap_text(text, font, max_w)
+            needed_height = len(lines) * (font.get_height() + 3) + 140
+            if needed_height <= SCREEN_HEIGHT - BORDER * 8:
+                return font
+        return font
+
+    def _draw_wrapped(self, text: str, x: int, y: int, max_w: int, colour: tuple, font: pygame.font.Font = FONT):
+        line_h = font.get_height() + 3
+        for line in self._wrap_text(text, font, max_w):
+            self.screen.blit(font.render(line, True, colour), (x, y))
+            y += line_h
 
     # ── events ────────────────────────────────────────────────────────────────
 
