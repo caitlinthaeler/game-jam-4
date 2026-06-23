@@ -255,7 +255,6 @@ class ScribeScene(Scene):
                 next_state="archive",
                 animation=Assets.animations.archive_icon,
                 x=SCREEN_WIDTH - 64, y=BORDER,
-                text="back",
                 hover_transforms=[scale_hover(1.1)],
             ),
         ]
