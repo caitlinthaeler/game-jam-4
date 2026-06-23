@@ -6,10 +6,10 @@ from dialogue_manager import DialogueManager
 
 class IntroductionScene(Scene):
 
-    def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock, game):
+    def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock, game, vhs=None):
         super().__init__(screen, clock)
         self._game = game
-        self._dialogue = DialogueManager(screen, clock)
+        self._dialogue = DialogueManager(screen, clock, vhs=vhs)
         self.main_background = format_background(self.screen, "archive_background.png")
 
 

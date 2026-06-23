@@ -75,7 +75,7 @@ _COL_BTN_IDLE = (220, 200, 140)
 
 
 class DialogueManager:
-    def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock):
+    def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock, vhs=None):
         self.screen = screen
         self.clock = clock
         self._bg: pygame.Surface = None
@@ -83,6 +83,7 @@ class DialogueManager:
         self._queue: deque = deque()
         self._surveyor_dir: str = ""
         self._last_speaker: str = ""
+        self._vhs = vhs
 
     # ------------------------------------------------------------------ public
 
@@ -186,6 +187,8 @@ class DialogueManager:
                     done = True
 
             self._draw_line(speaker, text[:chars], done)
+            if self._vhs:
+                self._vhs.apply(self.screen)
             pygame.display.flip()
             self.clock.tick(FPS)
             if advance:
@@ -212,6 +215,8 @@ class DialogueManager:
                         if r.collidepoint(event.pos):
                             return options[i]["file"]
             self._draw_choices(options, rects, mouse)
+            if self._vhs:
+                self._vhs.apply(self.screen)
             pygame.display.flip()
             self.clock.tick(FPS)
 
