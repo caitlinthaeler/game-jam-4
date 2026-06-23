@@ -7,6 +7,7 @@ class VHSEffect:
     def __init__(self, surface_size: tuple[int, int], intensity: float = 0.6):
         self.intensity = intensity
         self.enabled = True
+        self._surface_size = surface_size
         self._scanlines = self._make_scanlines(surface_size, intensity)
 
     def _make_scanlines(self, size, intensity):
@@ -60,3 +61,7 @@ class VHSEffect:
             if jitter_x != 0:
                 strip = surface.subsurface((0, strip_y, w, strip_h)).copy()
                 surface.blit(strip, (jitter_x, strip_y))
+
+    def set_intensity(self, intensity: float):
+        self.intensity = max(0.0, min(1.0, intensity))
+        self._scanlines = self._make_scanlines(self._surface_size, self.intensity)

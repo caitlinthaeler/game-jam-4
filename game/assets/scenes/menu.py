@@ -68,12 +68,6 @@ class MenuScene(Scene):
         self.info = pygame.transform.scale(self.main_background, self.screen.get_size())
 
 
-    def toggle_vhs(self):
-        self.vhs_enabled = not self.vhs_enabled
-        if self._vhs:
-            self._vhs.enabled = self.vhs_enabled
-        self.toggle_vhs_button.set_animation(Assets.animations.toggle_on if self.vhs_enabled else Assets.animations.toggle_off)
-
     def update(self) -> str | None:
         if self.state == MenuState.NEW_GAME:
             self.state = MenuState.CHOICES
@@ -148,6 +142,12 @@ class MenuScene(Scene):
         self.screen.blit(percent_label, (self.grain_slider_rect.right + 16, self.grain_slider_rect.centery - percent_label.get_height() // 2))
 
 
+
+    def _update_vhs_intensity(self, x: int):
+        rel_x = max(0, min(x - self.grain_slider_rect.left, self.grain_slider_rect.width))
+        self.vhs_intensity = rel_x / self.grain_slider_rect.width
+        if self._vhs:
+            self._vhs.set_intensity(self.vhs_intensity)
 
     def launch_game(self):
         self.state = MenuState.LAUNCH_GAME
