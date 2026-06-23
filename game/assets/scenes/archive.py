@@ -144,12 +144,12 @@ class ArchiveScene(Scene):
             self.state = ArchiveState.IDLE
             return "menu"
         if self.state == ArchiveState.BOOK_FLIP:
-            anim = Assets.animations.book_flip_animation
-            if anim.current_frame_index >= len(anim.frames) - 1:
-                anim.current_frame_index = 0
-                anim.ticks_elapsed = 0
-                self.state = ArchiveState.IDLE
-                return "scribe"
+            # anim = Assets.animations.book_flip_animation
+            # if anim.current_frame_index >= len(anim.frames) - 1:
+            #     anim.current_frame_index = 0
+            #     anim.ticks_elapsed = 0
+            self.state = ArchiveState.IDLE
+            return "scribe"
         if self.state == ArchiveState.QUIT:
             self.state = ArchiveState.IDLE
             return "quit"
