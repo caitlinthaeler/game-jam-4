@@ -23,21 +23,83 @@ def grid_from_image(animation: Animation, cell_px_w: int, cell_px_h: int) -> Gri
     return Grid(cols, rows, valid_cells)
 
 
+# def new_level_0_data():
+#     return PuzzleData(
+#         level=0,
+#         stage=0,
+#         pieces=[
+#             Assets.pieces.margin_piece_1, 
+#             Assets.pieces.margin_piece_2],
+#         hints=[
+#             Assets.animations.level_1_hint_1,
+#             Assets.animations.level_1_hint_2,
+#             Assets.animations.level_1_hint_3,
+#         ],
+#         trust_points=[10, 5, 1],
+#         grid=grid_from_image(Assets.animations.solution_1, cell_px_w=10, cell_px_h=10),
+#         solution=Assets.animations.solution_1,
+#     )
+
+
+# def new_level_1_data():
+#     return PuzzleData(
+#         level=1,
+#         stage=0,
+#         pieces=[
+#             Assets.pieces.margin_piece_1, 
+#             Assets.pieces.margin_piece_2,
+#             Assets.pieces.margin_piece_3,
+#             Assets.pieces.margin_piece_4,
+#             ],
+#         hints=[
+#             Assets.animations.level_2_hint_1,
+#             Assets.animations.level_2_hint_2,
+#             Assets.animations.level_2_hint_3,
+#         ],
+#         trust_points=[10, 5, 1],
+#         grid=grid_from_image(Assets.animations.solution_2, cell_px_w=10, cell_px_h=10),
+#         solution=Assets.animations.solution_2,
+#     )
+
+
+# def new_level_2_data():
+#     return PuzzleData(
+#         level=2,
+#         stage=0,
+#         pieces=[
+#             Assets.pieces.margin_piece_1, 
+#             Assets.pieces.margin_piece_2,
+#             Assets.pieces.margin_piece_3,
+#             Assets.pieces.margin_piece_4,
+#             Assets.pieces.margin_piece_5,
+#             ],
+#         hints=[
+#             Assets.animations.level_3_hint_1,
+#             Assets.animations.level_3_hint_2,
+#             Assets.animations.level_3_hint_3,
+#         ],
+#         trust_points=[10, 5, 1],
+#         grid=grid_from_image(Assets.animations.solution_3, cell_px_w=10, cell_px_h=10),
+#         solution=Assets.animations.solution_3,
+#     )
+
 def new_level_0_data():
     return PuzzleData(
         level=0,
         stage=0,
         pieces=[
-            Assets.pieces.margin_piece_1, 
-            Assets.pieces.margin_piece_2],
+            Assets.pieces.blue_flowers,
+            Assets.pieces.poppies,
+        ],
         hints=[
             Assets.animations.level_1_hint_1,
             Assets.animations.level_1_hint_2,
             Assets.animations.level_1_hint_3,
         ],
         trust_points=[10, 5, 1],
-        grid=grid_from_image(Assets.animations.solution_1, cell_px_w=10, cell_px_h=10),
-        solution=Assets.animations.solution_1,
+        grid=grid_from_image(Assets.animations.solution1, cell_px_w=48, cell_px_h=48),
+        solution=Assets.animations.solution1,
+        page_text="The Book of Hours",
     )
 
 
@@ -46,10 +108,10 @@ def new_level_1_data():
         level=1,
         stage=0,
         pieces=[
-            Assets.pieces.margin_piece_1, 
-            Assets.pieces.margin_piece_2,
-            Assets.pieces.margin_piece_3,
-            Assets.pieces.margin_piece_4,
+            Assets.pieces.fish,
+            Assets.pieces.blue_flowers,
+            Assets.pieces.thistles,
+            Assets.pieces.adorning_corner,
             ],
         hints=[
             Assets.animations.level_2_hint_1,
@@ -57,8 +119,9 @@ def new_level_1_data():
             Assets.animations.level_2_hint_3,
         ],
         trust_points=[10, 5, 1],
-        grid=grid_from_image(Assets.animations.solution_2, cell_px_w=10, cell_px_h=10),
-        solution=Assets.animations.solution_2,
+        grid=grid_from_image(Assets.animations.solution2, cell_px_w=48, cell_px_h=48),
+        solution=Assets.animations.solution2,
+        page_text="Psalter of Coldingham",
     )
 
 
@@ -67,11 +130,10 @@ def new_level_2_data():
         level=2,
         stage=0,
         pieces=[
-            Assets.pieces.margin_piece_1, 
-            Assets.pieces.margin_piece_2,
-            Assets.pieces.margin_piece_3,
-            Assets.pieces.margin_piece_4,
-            Assets.pieces.margin_piece_5,
+            Assets.pieces.blue_flowers,
+            Assets.pieces.thistles,
+            Assets.pieces.adorning_corner,
+            Assets.pieces.flowers
             ],
         hints=[
             Assets.animations.level_3_hint_1,
@@ -79,8 +141,9 @@ def new_level_2_data():
             Assets.animations.level_3_hint_3,
         ],
         trust_points=[10, 5, 1],
-        grid=grid_from_image(Assets.animations.solution_3, cell_px_w=10, cell_px_h=10),
-        solution=Assets.animations.solution_3,
+        grid=grid_from_image(Assets.animations.solution3, cell_px_w=48, cell_px_h=48),
+        solution=Assets.animations.solution3,
+        page_text="Chronicle of the Marches",
     )
 
 

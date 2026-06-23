@@ -90,8 +90,9 @@ class MarginPiece:
     # dir = SPRITES_DIR + "pieces/"
     dir = SPRITES_DIR
 
-    def __init__(self, path=None, x: int=0, y: int=0):
+    def __init__(self, path=None, x: int=0, y: int=0, piece_cell_size: int=PIECE_CELL_SIZE):
         self.piece_id = path
+        self.piece_cell_size = piece_cell_size
         self.x = x
         self.y = y
 
@@ -104,8 +105,8 @@ class MarginPiece:
 
         self.image: pygame.Surface = image
         # Cell set: (col, row) offsets from (0,0), built from non-transparent pixels.
-        # Step by PIECE_CELL_SIZE (10px) since source images are at 1000% scale.
-        self.pixels: set = self.cells_from_surface(image, 0, 0, PIECE_CELL_SIZE) if path else set()
+        # piece_cell_size is how many source pixels wide/tall each grid cell is.
+        self.pixels: set = self.cells_from_surface(image, 0, 0, piece_cell_size) if path else set()
         # display_image is scaled so each cell fills exactly BASE_TILE_SIZE pixels.
         if path and self.pixels:
             cols = max(c for c, _ in self.pixels) + 1
@@ -207,7 +208,7 @@ class Animations:
     toggle_off = Animation([Frame(path="items/toggle_off.png", size=(100, 50)),], ticks_per_frame=30)
 
     # hint_page = Animation([Frame(path="items/button.png")], ticks_per_frame=30)
-    book = Animation([Frame(path="items/book.png", size=(480, 320))], ticks_per_frame=30)
+    book = Animation([Frame(path="items/book.png", size=(480, 480), )], ticks_per_frame=30)
     page_turning = Animation([Frame(path="items/player_map.png")], ticks_per_frame=30)
 
     level_1_hint_1 = Animation([Frame(path="hints/hint_test_1_1.png")], ticks_per_frame=30)
@@ -244,6 +245,10 @@ class Animations:
     solution_2 = Animation([Frame(path="items/margin_test_1.png")], ticks_per_frame=30)
     solution_3 = Animation([Frame(path="items/margin_test_2.png")], ticks_per_frame=30)
 
+    solution1 = Animation([Frame(path="items/answer_key_1.png")], ticks_per_frame=30)
+    solution2 = Animation([Frame(path="items/answer_key_2.png")], ticks_per_frame=30)
+    solution3 = Animation([Frame(path="items/answer_key_3.png")], ticks_per_frame=30)
+
     book_flip_animation = Animation([
         Frame(path="items/book_flip_animation1.png", size=(480, 320)),
         Frame(path="items/book_flip_animation2.png", size=(480, 320)),
@@ -272,13 +277,13 @@ class MarginPieces:
     margin_piece_4 = MarginPiece(path="pieces/piece_test_4.png")
     margin_piece_5 = MarginPiece(path="pieces/piece_test_5.png")
 
-    # use these
-    adorning_corner = MarginPiece(path="pieces/adorning_corner.png")
-    blue_flowers = MarginPiece(path="pieces/blue_flowers.png")
-    fish = MarginPiece(path="pieces/fish.png")
-    flowers = MarginPiece(path="pieces/flowers.png")
-    poppies = MarginPiece(path="pieces/poppies.png")
-    thistles = MarginPiece(path="pieces/thistles.png")
+    # use these — 320×320 source images use 48px/cell; 640×___ use 96px/cell
+    adorning_corner = MarginPiece(path="pieces/adorning_corner.png", piece_cell_size=96)
+    blue_flowers    = MarginPiece(path="pieces/blue_flowers.png",    piece_cell_size=48)
+    fish            = MarginPiece(path="pieces/fish.png",            piece_cell_size=48)
+    flowers         = MarginPiece(path="pieces/flowers.png",         piece_cell_size=96)
+    poppies         = MarginPiece(path="pieces/poppies.png",         piece_cell_size=48)
+    thistles        = MarginPiece(path="pieces/thistles.png",        piece_cell_size=48)
 
 class Sound:
     birds_chirping = SoundEffect(path="birds_chirping.mp3")

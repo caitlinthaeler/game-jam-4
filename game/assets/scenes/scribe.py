@@ -37,13 +37,13 @@ from game_manager import game_data, SubmitResult
 
 # ── layout constants ────────────────────────────────────────────────────────
 
-PAGE_W, PAGE_H = 240, 320          # in-book page slot dimensions (grid area)
+PAGE_W, PAGE_H = 320, 480          # in-book page slot dimensions (grid area)
 HINT_PAGE_W, HINT_PAGE_H = 24*5, 32*5  # floating hint page outside the book
 # Book is 2×PAGE_W wide; centre it on screen.
-BOOK_POS       = (SCREEN_WIDTH//2 - 250, 80)
+BOOK_POS       = (SCREEN_WIDTH//2 - 250, -80)
 # Left page occupies the left half of the book; right page the right half.
-PAGE_LEFT_POS  = (BOOK_POS[0],          BOOK_POS[1])
-PAGE_RIGHT_POS = (BOOK_POS[0] + PAGE_W, BOOK_POS[1])
+PAGE_LEFT_POS  = (BOOK_POS[0]+64,          BOOK_POS[1])
+PAGE_RIGHT_POS = (BOOK_POS[0]+64+ PAGE_W, BOOK_POS[1])
 HINT_PAGE_LEFT_POS = (20, BOOK_POS[1]+(PAGE_H // 2 - HINT_PAGE_H // 2))
 HINT_PAGE_RIGHT_POS = (BOOK_POS[0]+(PAGE_W*2)+20, BOOK_POS[1]+(PAGE_H // 2 - HINT_PAGE_H // 2))
 HINT_FADE_SPEED  = 8               # alpha units per frame
@@ -52,7 +52,7 @@ PAGE_TURN_FRAMES = 40              # frames for the page-turn flash
 
 # ── drag / tray constants ───────────────────────────────────────────────────
 # Grid is drawn inset from the page origin by this many pixels.
-GRID_OFFSET      = (0, 0)
+GRID_OFFSET      = (0, 40)
 # Piece tray sits below the book area.
 TRAY_Y           = BOOK_POS[1] + PAGE_H + 20
 TRAY_PIECE_SIZE  = 32              # display size of each tray thumbnail (px)
@@ -311,6 +311,7 @@ class ScribeScene(Scene):
         self.screen.blit(self.background, (0, 0))
         self._draw_book()
         self._draw_pages()
+        self._draw_page_text()
         self._draw_grid()
         self._draw_placed_pieces()
         self._draw_effects()           # transition effects on top of static content
@@ -682,7 +683,7 @@ class ScribeScene(Scene):
             for i, rect in enumerate(self._tray_rects):
                 if rect.collidepoint(mx, my):
                     prototype = self._tray_types[i]
-                    fresh = MarginPiece(prototype.piece_id)
+                    fresh = MarginPiece(prototype.piece_id, piece_cell_size=prototype.piece_cell_size)
                     self._dragging_piece    = fresh
                     self._drag_mouse_offset = (mx - rect.x, my - rect.y)
                     self._drag_pixel_pos    = (rect.x, rect.y)
@@ -731,6 +732,19 @@ class ScribeScene(Scene):
             self._drop_piece(grid, snap_col, snap_row)
 
     # ── drawing ──────────────────────────────────────────────────────────────
+
+    def _draw_page_text(self):
+        """Render the current puzzle's page_text centred in the page header."""
+        puzzle = game_data.current_puzzle
+        if puzzle is None or not puzzle.page_text:
+            return
+        side = game_data.current_side
+        px, py = PAGE_LEFT_POS if side == "left" else PAGE_RIGHT_POS
+        # Centre the label horizontally within the page, vertically within the
+        # header gap created by GRID_OFFSET[1].
+        header_mid_y = py + GRID_OFFSET[1] // 2
+        label = FONT.render(puzzle.page_text, True, (60, 35, 10))
+        self.screen.blit(label, (px + PAGE_W // 2 - label.get_width() // 2, header_mid_y - label.get_height() // 2))
 
     def _draw_grid(self):
         """Draw the grid overlay on the current puzzle page."""

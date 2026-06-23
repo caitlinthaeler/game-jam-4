@@ -307,7 +307,8 @@ class Grid:
 class PuzzleData:
     def __init__(self, level: int=0, stage: int=0, pieces: list=None,
                  hints: list=None, trust_points: list=None,
-                 grid: "Grid | None" = None, solution: object=None):
+                 grid: "Grid | None" = None, solution: object=None,
+                 page_text: str=""):
         self.level = level
         self.stage = stage
         self.pieces: list = pieces or []   # available MarginPiece objects
@@ -315,6 +316,7 @@ class PuzzleData:
         self.trust_points = trust_points   # list of int per stage
         self.grid: Grid = grid if isinstance(grid, Grid) else Grid(8, 10)
         self.solution = solution           # animation asset
+        self.page_text: str = page_text    # decorative text shown at the top of the page
 
 
     def next_stage(self):
