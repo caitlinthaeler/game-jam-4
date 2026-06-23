@@ -32,7 +32,7 @@ scene_manager.scenes["archive"] = ArchiveScene(screen, clock)
 scene_manager.scenes["scribe"] = ScribeScene(screen, clock, game)
 scene_manager.scenes["introduction"] = IntroductionScene(screen, clock, game, vhs=vhs)
 
-scene_manager.switch_scene("scribe")
+scene_manager.switch_scene("menu")
 
 while game.is_running():
     next_scene = scene_manager.current_scene.update()
