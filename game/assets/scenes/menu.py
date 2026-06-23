@@ -58,8 +58,9 @@ class MenuScene(Scene):
         ]
 
         self.back_button = BackButton(self.screen, MenuState.CHOICES) # defaults only
-        self.vhs_enabled = True
-        self.toggle_vhs_button = AnimatedButton(self.screen, MenuState.SETTINGS, Assets.animations.toggle_on, SCREEN_WIDTH-200, 300, hover_transforms=[scale_hover(1.1)], sound=Assets.sounds.default_button_click)
+        self.vhs_intensity = self._vhs.intensity if self._vhs else 0.8
+        self.grain_slider_rect = pygame.Rect(BORDER*2, BORDER*7+24, SCREEN_WIDTH - BORDER*4, 24)
+        self._slider_dragging = False
 
         self.spacebar = pygame.image.load(os.path.join(UI_PATH, "spacebar.png")).convert_alpha()
         self.spacebar = pygame.transform.scale(self.spacebar, (200, 70))
@@ -121,27 +122,30 @@ class MenuScene(Scene):
         # self.screen.blit(FONT.render("space", False, (0, 0, 0)), (space_x+30, space_y+20))
 
     def render_settings_screen(self):
-        for _ in self.handle_events([self.back_button, self.toggle_vhs_button]): pass
+        for _ in self.handle_events([self.back_button]): pass
         self.screen.blit(self.main_background, (0, 0))
         overlay = pygame.Surface((SCREEN_WIDTH-BORDER*2, SCREEN_HEIGHT-BORDER*5), pygame.SRCALPHA)
         pygame.draw.rect(overlay, (255, 255, 255, 150), (overlay.get_rect()))
         self.screen.blit(overlay, (BORDER, BORDER*3+10))
         self.back_button.draw()
 
-        # display text:
-        text = [
-            "Toggle VHS effect: ",
-        ]
-        self.toggle_vhs_button.draw()
-        # for i, line in enumerate(text):
-        #     self.screen.blit(FONT.render(line,
-        #         True, (0, 0, 0)), (BORDER*2, BORDER*7+25*i)
-        #     )
-        
-        # display key graphics:
-        # space_x, space_y = 572, 260
-        # self.screen.blit(self.spacebar, (space_x, space_y))
-        # self.screen.blit(FONT.render("space", False, (0, 0, 0)), (space_x+30, space_y+20))
+        label = FONT.render("Grain intensity", True, (0, 0, 0))
+        self.screen.blit(label, (self.grain_slider_rect.left, self.grain_slider_rect.top - 32))
+
+        # slider track and fill
+        pygame.draw.rect(self.screen, (200, 200, 200), self.grain_slider_rect, border_radius=12)
+        fill_rect = self.grain_slider_rect.copy()
+        fill_rect.width = int(self.vhs_intensity * self.grain_slider_rect.width)
+        pygame.draw.rect(self.screen, (120, 120, 120), fill_rect, border_radius=12)
+
+        knob_x = self.grain_slider_rect.left + int(self.vhs_intensity * self.grain_slider_rect.width)
+        knob_radius = self.grain_slider_rect.height // 2 + 4
+        knob_center = (knob_x, self.grain_slider_rect.centery)
+        pygame.draw.circle(self.screen, (255, 255, 255), knob_center, knob_radius)
+        pygame.draw.circle(self.screen, (80, 80, 80), knob_center, knob_radius, 2)
+
+        percent_label = FONT.render(f"{int(self.vhs_intensity * 100)}%", True, (0, 0, 0))
+        self.screen.blit(percent_label, (self.grain_slider_rect.right + 16, self.grain_slider_rect.centery - percent_label.get_height() // 2))
 
 
 
@@ -166,13 +170,19 @@ class MenuScene(Scene):
                 self.state = MenuState.QUIT
                 return # exit immediately
             # return button that was clicked, if there was one:
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if self.grain_slider_rect.collidepoint(event.pos):
+                    self._slider_dragging = True
+                    self._update_vhs_intensity(event.pos[0])
+            elif event.type == pygame.MOUSEMOTION and self._slider_dragging:
+                self._update_vhs_intensity(event.pos[0])
+            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self._slider_dragging:
+                self._slider_dragging = False
+
             clicked_button = get_clicked_button(event, buttons)
             if clicked_button:
                 print(f"Clicked button: {clicked_button}")
-                if clicked_button == self.toggle_vhs_button:
-                    self.toggle_vhs()
-                else:
-                    self.state = clicked_button.action() # go to new menu state
+                self.state = clicked_button.action() # go to new menu state
                 yield clicked_button
                 continue # process remaining events
             yield event # return remaining events, itteratively

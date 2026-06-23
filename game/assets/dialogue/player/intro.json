@@ -1,7 +1,9 @@
 {
   "id": "intro",
   "lines": [
-    {"speaker": "You", "text": "Intro..."}
+    {"speaker": "You", "text": "You are an illuminator, tasked with decorating the margins of a prayerbook. You have been commissioned to copy the work from another prayerbook, and must match the marginalia from your reference."},
+    {"speaker": "You", "text": "If you fail to match the reference, you will be given another chance to try again. Correctly decorate your prayerbook to earn Trust Points."},
+    {"speaker": "You", "text": "Trust Points signify that you are a skiled illuminator. Use your Trust Points to unlock artifacts and read about their history."}
   ],
   "next": {
     "type": "exit",
