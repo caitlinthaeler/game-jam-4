@@ -11,18 +11,24 @@ def _invisible_anim(w: int, h: int) -> Animation:
     return Animation([Frame(color=(0, 0, 0, 0), size=(w, h))], ticks_per_frame=30)
 
 
-# Original centres for the 3 surveyor map icons — adjust to match your artwork.
-ARTEFACT_ORIGINS = [
-    (50, 100),   # artefact 1 top left
-    (200, 250),   # arefact 2 top right
-    (50, 100),   # artefact 3 bottom left
-    (200, 250),   # artefact 4 bottom right
-]
 # Where the selected artefact icon slides to on the desk.
+ARTEFACT_TABLE_W, ARTEFACT_TABLE_H = 600, 150
+ARTEFACT_POS = (50, SCREEN_HEIGHT-ARTEFACT_TABLE_H-50)
 ARTEFACT_TABLE_CENTER = (SCREEN_WIDTH - 200, SCREEN_HEIGHT - 150)
 
+# Relative to the artefact table
+ARTEFACT_ORIGINS = [
+    (0, 0),   # artefact 1 - blackadder
+    (64, 0),   # arefact 2 - gask
+    (128, 0),   # artefact 3 - lesmahagow
+    (192, 0),   # artefact 4 - scone chartulary
+]
 
-class OfficeState(Enum):
+ARTEFACT_ICON_SIZE = 64
+ARTEFACT_FULL_SIZE = 192
+
+
+class ArchiveState(Enum):
     MENU       = 0
     SCRIBE     = 1
     ARTEFACT   = 2
@@ -30,72 +36,71 @@ class OfficeState(Enum):
     QUIT       = 4
     BOOK_FLIP  = 5
 
-class OfficeScene(Scene):
+class ArchiveScene(Scene):
     def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock):
         super().__init__(screen, clock)
-        self.state = OfficeState.IDLE
+        self.state = ArchiveState.IDLE
 
         self.music    = Assets.background_music.church
         self.ambience = Assets.sounds.women_murmuring
 
-        self.office_background = format_background(self.screen, "office_main.png")
+        self.archive_background = format_background(self.screen, "archive_background.png")
 
         self.buttons = [
             AnimatedButton(
                 surface=self.screen,
-                next_state=OfficeState.BOOK_FLIP,
-                animation=Assets.animations.scribe_icon,
+                next_state=ArchiveState.BOOK_FLIP,
+                animation=Assets.animations.paint_icon,
                 x=SCREEN_WIDTH - BORDER, y=BORDER,
                 anchor="topright",
                 text="scribe",
                 text_offset=(-10, 40),
                 text_colour=(255, 255, 255),
-                hover_transforms=[tint_hover((0, 87, 72)), scale_hover(1.1)],
+                hover_transforms=[ scale_hover(1.1)],
                 sound=Assets.sounds.page_turning,
             ),
             AnimatedButton(
                 surface=self.screen,
-                next_state=OfficeState.MENU,
+                next_state=ArchiveState.MENU,
                 animation=Assets.animations.menu_icon,
                 x=BORDER, y=BORDER,
-                text="menu",
-                hover_transforms=[tint_hover((87, 0, 72)), scale_hover(1.1)],
+                hover_transforms=[scale_hover(1.1)],
             ),
             # artefact icons — positions updated each frame in render().
             AnimatedButton(
                 surface=self.screen,
-                next_state=OfficeState.ARTEFACT,
-                animation=Assets.animations.artefact_icon_1,
+                next_state=ArchiveState.ARTEFACT,
+                animation=Assets.animations.blackadder_locked,
                 x=ARTEFACT_ORIGINS[0][0], y=ARTEFACT_ORIGINS[0][1],
-                anchor="center",
-                width=120, height=80,
+                # anchor="center",
+                width=ARTEFACT_ICON_SIZE, height=ARTEFACT_ICON_SIZE,
                 hover_transforms=[tint_hover((255, 255, 255))],
             ),
             AnimatedButton(
                 surface=self.screen,
-                next_state=OfficeState.ARTEFACT,
-                animation=Assets.animations.artefact_icon_2,
+                next_state=ArchiveState.ARTEFACT,
+                animation=Assets.animations.gask_locked,
                 x=ARTEFACT_ORIGINS[1][0], y=ARTEFACT_ORIGINS[1][1],
-                anchor="center",
-                width=100, height=90,
+                # anchor="center",
+                width=ARTEFACT_ICON_SIZE, height=ARTEFACT_ICON_SIZE,
                 hover_transforms=[tint_hover((255, 255, 255))],
             ),
             AnimatedButton(
                 surface=self.screen,
-                next_state=OfficeState.ARTEFACT,
-                animation=Assets.animations.artefact_icon_3,
+                next_state=ArchiveState.ARTEFACT,
+                animation=Assets.animations.lesmahagow_locked,
                 x=ARTEFACT_ORIGINS[2][0], y=ARTEFACT_ORIGINS[2][1],
-                anchor="center",
-                width=200, height=60,
+                # anchor="center",
+                width=ARTEFACT_ICON_SIZE, height=ARTEFACT_ICON_SIZE,
                 hover_transforms=[tint_hover((255, 255, 255))],
             ),
             AnimatedButton(
                 surface=self.screen,
-                next_state=OfficeState.ARTEFACT,
-                animation=Assets.animations.artefact_icon_4,
-                x=ARTEFACT_ORIGINS[2][0], y=ARTEFACT_ORIGINS[2][1],
-                anchor="center",
-                width=200, height=60,
+                next_state=ArchiveState.ARTEFACT,
+                animation=Assets.animations.scone_chartulary_locked,
+                x=ARTEFACT_ORIGINS[3][0], y=ARTEFACT_ORIGINS[3][1],
+                # anchor="center",
+                width=ARTEFACT_ICON_SIZE, height=ARTEFACT_ICON_SIZE,
                 hover_transforms=[tint_hover((255, 255, 255))],
             ),
         ]
@@ -103,31 +108,31 @@ class OfficeScene(Scene):
         self.artefact_buttons = self.buttons[2:]
 
     def update(self):
-        if self.state == OfficeState.MENU:
-            self.state = OfficeState.IDLE
+        if self.state == ArchiveState.MENU:
+            self.state = ArchiveState.IDLE
             return "menu"
-        elif self.state == OfficeState.BOOK_FLIP:
+        elif self.state == ArchiveState.BOOK_FLIP:
             anim = Assets.animations.book_flip_animation
             if anim.current_frame_index >= len(anim.frames) - 1:
                 anim.current_frame_index = 0
                 anim.ticks_elapsed = 0
-                self.state = OfficeState.IDLE
+                self.state = ArchiveState.IDLE
                 return "scribe"
-        elif self.state == OfficeState.SCRIBE:
-            self.state = OfficeState.IDLE
+        elif self.state == ArchiveState.SCRIBE:
+            self.state = ArchiveState.IDLE
             return "scribe"
-        elif self.state == OfficeState.ARTEFACT:
-            self.state = OfficeState.IDLE
+        elif self.state == ArchiveState.ARTEFACT:
+            self.state = ArchiveState.IDLE
             return "artefact" if game_data.has_unlocked_artefact() else None
-        elif self.state == OfficeState.QUIT:
-            self.state = OfficeState.IDLE
+        elif self.state == ArchiveState.QUIT:
+            self.state = ArchiveState.IDLE
             return "quit"
         return None
 
     def render(self):
-        self.screen.blit(self.office_background, (0, 0))
+        self.screen.blit(self.archive_background, (0, 0))
         for i, btn in enumerate(self.artefact_buttons):
-            cx, cy = ARTEFACT_TABLE_CENTER[0] + ARTEFACT_ORIGINS[i][0], ARTEFACT_TABLE_CENTER[1] + ARTEFACT_ORIGINS[i][1]
+            cx, cy = ARTEFACT_POS[0] + ARTEFACT_ORIGINS[i][0], ARTEFACT_POS[1] + ARTEFACT_ORIGINS[i][1]
             btn.base_rect.center = cx, cy
         for button in self.buttons:
             button.draw()
@@ -135,7 +140,7 @@ class OfficeScene(Scene):
                    "Trust Points: " + str(game_data.total_trust_points),
                    Assets.animations.coin_animation)
 
-        if self.state == OfficeState.BOOK_FLIP:
+        if self.state == ArchiveState.BOOK_FLIP:
             anim = Assets.animations.book_flip_animation
             anim.update()
             img = anim.current_frame.image
@@ -149,7 +154,7 @@ class OfficeScene(Scene):
     def handle_events(self, buttons):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                self.state = OfficeState.QUIT
+                self.state = ArchiveState.QUIT
                 return
             clicked_button = get_clicked_button(event, buttons)
             if clicked_button:

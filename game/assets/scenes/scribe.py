@@ -248,16 +248,15 @@ class ScribeScene(Scene):
                 next_state="menu",
                 animation=Assets.animations.menu_icon,
                 x=BORDER, y=BORDER,
-                text="menu",
-                hover_transforms=[tint_hover((87, 0, 72)), scale_hover(1.1)],
+                hover_transforms=[scale_hover(1.1)],
             ),
             AnimatedButton(
                 surface=self.screen,
-                next_state="office",
-                animation=Assets.animations.menu_icon,
-                x=SCREEN_WIDTH - 200, y=BORDER,
+                next_state="archive",
+                animation=Assets.animations.archive_icon,
+                x=SCREEN_WIDTH - 64, y=BORDER,
                 text="back",
-                hover_transforms=[tint_hover((87, 0, 72)), scale_hover(1.1)],
+                hover_transforms=[scale_hover(1.1)],
             ),
         ]
 
@@ -280,7 +279,7 @@ class ScribeScene(Scene):
         self.submit_button = AnimatedButton(
             surface=self.screen,
             next_state="submit",
-            animation=Assets.animations.menu_icon,
+            animation=Assets.animations.default_button,
             x=SCREEN_WIDTH // 2 - 100, y=SCREEN_HEIGHT - 80,
             width=200, height=55,
             text="submit solution",
@@ -364,8 +363,8 @@ class ScribeScene(Scene):
     def _dispatch(self, action: str) -> str | None:
         if action == "menu":
             return "menu"
-        if action == "office":
-            return "office"
+        if action == "archive":
+            return "archive"
         if action == "submit":
             self._on_submit()
         elif action == "prev_page":

@@ -198,9 +198,10 @@ player_run_fps = 5
 
 class Animations:
     
-    menu_icon = Animation([Frame(path="items/button2.png", size=(100, 50))], ticks_per_frame=30)
-    office_icon = Animation([Frame(path="items/home_map_icon.png")], ticks_per_frame=30)
-    scribe_icon = Animation([Frame(path="items/quill.png", size=(50, 50))], ticks_per_frame=30)
+    default_button = Animation([Frame(path="items/button2.png", size=(100, 50))], ticks_per_frame=30)
+    menu_icon = Animation([Frame(path="items/menu_icon.png", size=(50, 50))], ticks_per_frame=30)
+    archive_icon = Animation([Frame(path="items/archive_icon.png", size=(50, 50))], ticks_per_frame=30)
+    paint_icon = Animation([Frame(path="items/paint_icon.png", size=(50, 50))], ticks_per_frame=30)
 
     toggle_on = Animation([Frame(path="items/toggle_on.png", size=(100, 50)),], ticks_per_frame=30)
     toggle_off = Animation([Frame(path="items/toggle_off.png", size=(100, 50)),], ticks_per_frame=30)
@@ -221,10 +222,23 @@ class Animations:
     level_3_hint_2 = Animation([Frame(path="hints/hint_test_3_2.png")], ticks_per_frame=30)
     level_3_hint_3 = Animation([Frame(path="hints/hint_test_3_3.png")], ticks_per_frame=30)
 
-    artefact_icon_1 = Animation([Frame(path="items/player_map.png")], ticks_per_frame=30)
-    artefact_icon_2 = Animation([Frame(path="items/player_map.png")], ticks_per_frame=30)
-    artefact_icon_3 = Animation([Frame(path="items/player_map.png")], ticks_per_frame=30)
-    artefact_icon_4 = Animation([Frame(path="items/player_map.png")], ticks_per_frame=30)
+    # artefacts
+    # artefact 1
+    blackadder_locked = Animation([Frame(path="artefacts/blackadder_locked.png")], ticks_per_frame=30)
+    blackadder_unlocked = Animation([Frame(path="artefacts/blackadder_unlocked.png")], ticks_per_frame=30)
+
+    # artefact 2
+    gask_locked = Animation([Frame(path="artefacts/gask_locked.png")], ticks_per_frame=30)
+    gask_unlocked = Animation([Frame(path="artefacts/gask_unlocked.png")], ticks_per_frame=30)
+
+    # artefact 3
+    lesmahagow_locked = Animation([Frame(path="artefacts/lesmahagow_locked.png")], ticks_per_frame=30)
+    lesmahagow_unlocked = Animation([Frame(path="artefacts/lesmahagow_unlocked.png")], ticks_per_frame=30)
+
+    # artefact 4
+    scone_chartulary_locked = Animation([Frame(path="artefacts/scone_chartulary_locked.png")], ticks_per_frame=30)
+    scone_chartulary_unlocked = Animation([Frame(path="artefacts/scone_chartulary_unlocked.png")], ticks_per_frame=30)
+
 
     solution_1 = Animation([Frame(path="items/margin_test_0.png")], ticks_per_frame=30)
     solution_2 = Animation([Frame(path="items/margin_test_1.png")], ticks_per_frame=30)
@@ -257,6 +271,14 @@ class MarginPieces:
     margin_piece_3 = MarginPiece(path="pieces/piece_test_3.png")
     margin_piece_4 = MarginPiece(path="pieces/piece_test_4.png")
     margin_piece_5 = MarginPiece(path="pieces/piece_test_5.png")
+
+    # use these
+    adorning_corner = MarginPiece(path="pieces/adorning_corner.png")
+    blue_flowers = MarginPiece(path="pieces/blue_flowers.png")
+    fish = MarginPiece(path="pieces/fish.png")
+    flowers = MarginPiece(path="pieces/flowers.png")
+    poppies = MarginPiece(path="pieces/poppies.png")
+    thistles = MarginPiece(path="pieces/thistles.png")
 
 class Sound:
     birds_chirping = SoundEffect(path="birds_chirping.mp3")
