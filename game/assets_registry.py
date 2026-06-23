@@ -200,7 +200,7 @@ class Animations:
     
     menu_icon = Animation([Frame(path="items/button2.png", size=(100, 50))], ticks_per_frame=30)
     office_icon = Animation([Frame(path="items/home_map_icon.png")], ticks_per_frame=30)
-    scribe_icon = Animation([Frame(path="items/quill_cursor.png", size=(50, 50))], ticks_per_frame=30)
+    scribe_icon = Animation([Frame(path="items/quill.png", size=(50, 50))], ticks_per_frame=30)
 
     toggle_on = Animation([Frame(path="items/toggle_on.png", size=(100, 50)),], ticks_per_frame=30)
     toggle_off = Animation([Frame(path="items/toggle_off.png", size=(100, 50)),], ticks_per_frame=30)
@@ -248,6 +248,7 @@ class Animations:
         Frame(path="items/coin6.png", size=(32, 32)),
         Frame(path="items/coin7.png", size=(32, 32)),
         Frame(path="items/coin8.png", size=(32, 32)),], ticks_per_frame=12, loop=True)
+    
 
 class MarginPieces:
     test_piece = MarginPiece(path="pieces/organic_shape.png")

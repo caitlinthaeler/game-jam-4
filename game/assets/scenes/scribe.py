@@ -191,7 +191,7 @@ class ScribeScene(Scene):
         self.music    = Assets.background_music.gameplay
         self.ambience = Assets.sounds.women_murmuring
         self.background = format_background(screen, "office_desk.png")
-        self._cursor_img = pygame.image.load(SPRITES_DIR + "items/quill_cursor.png").convert_alpha()
+        self._cursor_img = pygame.image.load(SPRITES_DIR + "items/arm.png").convert_alpha()
         # self._cursor_img = pygame.transform.scale(self._cursor_img, (32, 32))
 
         # ── mode & transition ──
@@ -321,7 +321,7 @@ class ScribeScene(Scene):
         self._draw_ui()
         pygame.mouse.set_visible(False)
         mx, my = pygame.mouse.get_pos()
-        self.screen.blit(self._cursor_img, (mx, my - self._cursor_img.get_height()))
+        self.screen.blit(self._cursor_img, (mx-2, my-150))
 
     # ── event handling ───────────────────────────────────────────────────────
 
