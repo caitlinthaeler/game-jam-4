@@ -36,12 +36,6 @@ class GameData:
     def current_side(self) -> str:
         return self._side_for_level(self.current_level)
 
-    @property
-    def needs_page_turn(self) -> bool:
-        """True when advancing to this level requires a physical page turn
-        (i.e. every even level > 0, because both pages are filled)."""
-        return self.current_level > 0 and self.current_level % 2 == 0
-
     def is_artefact_unlocked(self, idx: int) -> bool:
         return idx in self.unlocked_artefacts
 

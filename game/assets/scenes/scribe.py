@@ -1,27 +1,3 @@
-"""
-ScribeScene
-===========
-Manages the prayer-book UI where the player drags margin-pieces onto the grid.
-
-Layout
-------
-  Left page  → even-numbered levels  (0, 2, 4 …)
-  Right page → odd-numbered  levels  (1, 3, 5 …)
-  A physical page-turn happens when advancing to an even level > 0,
-  because both visible pages are then full.
-
-Modes
------
-  INTERACTIVE  – player can drag/drop (only on the current-level page)
-  TRANSITION   – all input locked; one or more effects are running
-  REVIEW       – player is browsing an old page; drag/drop disabled
-
-Effects (run in parallel inside TRANSITION mode)
--------------------------------------------------
-  Each effect is a small object updated every frame via update() → bool(done).
-  When ALL active effects are done, mode reverts to INTERACTIVE.
-"""
-
 import pygame
 from enum import Enum, auto
 
@@ -48,7 +24,8 @@ HINT_PAGE_LEFT_POS = (-5, SCREEN_HEIGHT - HINT_PAGE_H - 50)
 HINT_PAGE_RIGHT_POS = (SCREEN_WIDTH - HINT_PAGE_W + 5, SCREEN_HEIGHT - HINT_PAGE_H - 50)
 HINT_FADE_SPEED  = 8               # alpha units per frame
 SLIDE_SPEED      = 7               # pixels per frame
-PAGE_TURN_FRAMES = 40              # frames for the page-turn flash
+FLASH_HOLD_FRAMES = 50             # frames the success message stays fully visible
+FLASH_FADE_FRAMES = 15             # frames to fade the success message in/out
 
 # ── drag / tray constants ───────────────────────────────────────────────────
 # Grid is drawn inset from the page origin by this many pixels.
@@ -90,31 +67,6 @@ class _DropEffect:
             self.done = True
 
 
-class _SlideOutEffect:
-    """Slides a surface off-screen left (if side=='left') or right."""
-    def __init__(self, surface: pygame.Surface, x: int, y: int, side: str, speed: int = SLIDE_SPEED):
-        self.surf  = surface
-        self.x     = float(x)
-        self.y     = y
-        self.side  = side
-        self.speed = speed
-        self.done  = False
-
-    def update(self, screen: pygame.Surface):
-        if self.done:
-            return
-        if self.side == "left":
-            self.x -= self.speed
-            screen.blit(self.surf, (int(self.x), self.y))
-            if self.x + self.surf.get_width() < 0:
-                self.done = True
-        else:
-            self.x += self.speed
-            screen.blit(self.surf, (int(self.x), self.y))
-            if self.x > SCREEN_WIDTH:
-                self.done = True
-
-
 class _FadeEffect:
     """Cross-fades from old_surf to new_surf in place."""
     def __init__(self, old_surf: pygame.Surface, new_surf: pygame.Surface,
@@ -137,28 +89,6 @@ class _FadeEffect:
             self.done = True
 
 
-class _PageTurnEffect:
-    """Simple flash-white overlay that simulates a page turn."""
-    def __init__(self, total_frames: int = PAGE_TURN_FRAMES):
-        self.frame  = 0
-        self.total  = total_frames
-        self.done   = False
-        self._overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-        self._overlay.fill((245, 235, 200))
-
-    def update(self, screen: pygame.Surface):
-        if self.done:
-            return
-        self.frame += 1
-        # fade in then out
-        half = self.total // 2
-        alpha = int(255 * self.frame / half) if self.frame <= half else int(255 * (self.total - self.frame) / half)
-        self._overlay.set_alpha(max(0, min(255, alpha)))
-        screen.blit(self._overlay, (0, 0))
-        if self.frame >= self.total:
-            self.done = True
-
-
 class _TextRevealEffect:
     """Reveals a block of text character by character (stub — fill in yours)."""
     def __init__(self, text: str, pos: tuple, font, colour, chars_per_frame: int = 2):
@@ -177,6 +107,35 @@ class _TextRevealEffect:
         label = self.font.render(self.text[:self.shown], True, self.colour)
         screen.blit(label, self.pos)
         if self.shown >= len(self.text):
+            self.done = True
+
+
+class _FlashLabelEffect:
+    """Fades a large centred message in, holds it, then fades it out."""
+    def __init__(self, text: str, font, colour: tuple = (255, 255, 255),
+                 hold_frames: int = FLASH_HOLD_FRAMES, fade_frames: int = FLASH_FADE_FRAMES):
+        self.label = font.render(text, True, colour)
+        self.hold  = hold_frames
+        self.fade  = max(1, fade_frames)
+        self.total = hold_frames + 2 * self.fade
+        self.frame = 0
+        self.done  = False
+
+    def update(self, screen: pygame.Surface):
+        if self.done:
+            return
+        self.frame += 1
+        if self.frame <= self.fade:
+            alpha = int(255 * self.frame / self.fade)
+        elif self.frame <= self.fade + self.hold:
+            alpha = 255
+        else:
+            alpha = max(0, int(255 * (self.total - self.frame) / self.fade))
+        img = self.label.copy()
+        img.set_alpha(alpha)
+        pos = (SCREEN_WIDTH // 2 - img.get_width() // 2, SCREEN_HEIGHT // 2 - img.get_height() // 2)
+        screen.blit(img, pos)
+        if self.frame >= self.total:
             self.done = True
 
 
@@ -401,8 +360,13 @@ class ScribeScene(Scene):
             self._start_level_advance_transition(prev_level=game_data.current_level - 1)
 
         elif result == SubmitResult.CORRECT_FINAL:
-            # No more levels — stay on final page, show completion
+            # No more levels — stay on final page, show completion, and
+            # retire the tray since there's nothing left to place.
             self._start_hint_fade(game_data.current_level)
+            self.active_effects.append(_FlashLabelEffect("Book Complete!", FONT))
+            self._tray_types  = []
+            self._tray_rects  = []
+            self._tray_images = []
 
         elif result == SubmitResult.INCORRECT_STAGE:
             # Hint stage advanced — cross-fade the hint image
@@ -454,52 +418,45 @@ class ScribeScene(Scene):
 
     def _start_level_advance_transition(self, prev_level: int):
         """
-        Build the transition that plays when the player completes a level.
+        Freeze the just-completed page and flash a success message over it.
+        The next level is revealed once the flash finishes — see
+        _on_level_loaded, which is called from update() when the transition
+        completes.
 
         prev_level : the level that was just completed
-        new_level  : game_data.current_level (already advanced)
         """
         self.mode = ScribeMode.TRANSITION
-        new_level   = game_data.current_level
-        new_side    = game_data.current_side
-        prev_side   = "left" if prev_level % 2 == 0 else "right"
-        new_pos     = HINT_PAGE_LEFT_POS if new_side == "left" else HINT_PAGE_RIGHT_POS
-        prev_pos    = HINT_PAGE_LEFT_POS if prev_side == "left" else HINT_PAGE_RIGHT_POS
 
         # Freeze the completed book page (grid + pieces) before resetting.
-        # current_puzzle has already advanced to new_level by this point, so
-        # pull the just-completed puzzle from level_snapshots instead.
+        # current_puzzle has already advanced past prev_level by this point,
+        # so pull the just-completed puzzle from level_snapshots instead.
         prev_puzzle = game_data.level_snapshots.get(prev_level)
         self._book_snapshots[prev_level] = self._capture_book_page(prev_puzzle)
 
-        old_hint = self._get_hint_surf(prev_level)
-        new_hint = self._get_hint_surf(new_level)
-
-        effects = [
-            # Slide the completed level's hint out of view
-            _SlideOutEffect(old_hint, prev_pos[0], prev_pos[1], prev_side),
-        ]
-
-        if game_data.needs_page_turn:
-            effects.append(_PageTurnEffect())
-
-        # New hint drops in from top on the appropriate side
-        effects.append(_DropEffect(new_hint, new_pos[0], new_pos[1]))
-
-        text_pos = (new_pos[0] + 10, new_pos[1] + 10)
-        effects.append(_TextRevealEffect(f"Chapter {new_level + 1}", text_pos, FONT, (60, 40, 20)))
-
-        self.active_effects = effects
+        self.active_effects = [_FlashLabelEffect("Page Complete!", FONT)]
         self._level_advance_pending = True
-        self.viewed_level = new_level
 
     def _go_to_page(self, level: int):
         """Switch to review/interactive mode for a different page."""
+        if level != game_data.current_level and self._dragging_piece is not None:
+            # Leaving the active page mid-drag — cancel it rather than let
+            # the floating piece follow the mouse onto a page it can't act on.
+            self._dragging_piece    = None
+            self._drag_origin_cells = set()
+            self._click_mode        = False
+            self._hover_cells.clear()
+            self._update_grid_hover()
         self.viewed_level = level
         if level == game_data.current_level:
             self.mode = ScribeMode.INTERACTIVE
         else:
             self.mode = ScribeMode.REVIEW
+
+    def _puzzle_for(self, level: int) -> "PuzzleData | None":
+        """The puzzle data behind a given level: live if it's the active level, else its snapshot."""
+        if level == game_data.current_level:
+            return game_data.current_puzzle
+        return game_data.level_snapshots.get(level)
 
     # ── hint surface cache ───────────────────────────────────────────────────
 
@@ -514,11 +471,7 @@ class ScribeScene(Scene):
         surf = pygame.Surface((HINT_PAGE_W, HINT_PAGE_H), pygame.SRCALPHA)
         # surf.fill((245, 235, 200, 255))
 
-        # Pick the right puzzle source
-        if level == game_data.current_level:
-            puzzle = game_data.current_puzzle
-        else:
-            puzzle = game_data.level_snapshots.get(level)
+        puzzle = self._puzzle_for(level)
 
         if puzzle and puzzle.hints:
             stage_idx  = min(puzzle.stage, len(puzzle.hints) - 1)
@@ -592,11 +545,11 @@ class ScribeScene(Scene):
         draw_label(self, BORDER, SCREEN_HEIGHT - 30,
                    f"Trust: {game_data.total_trust_points}", None)
         draw_label(self, SCREEN_WIDTH // 2 - 40, BORDER + 2,
-                   f"Level {game_data.current_level + 1}", None)
+                   f"Level {self.viewed_level + 1}", None)
 
         # Rotation hint — piece rotation unlocks from the second level onward
         if self.mode == ScribeMode.INTERACTIVE and game_data.current_level >= 1:
-            draw_label(self, SCREEN_WIDTH - 70, PAGE_RIGHT_POS[1] + PAGE_H - 70,
+            draw_label(self, SCREEN_WIDTH - 80, PAGE_RIGHT_POS[1] + PAGE_H - 70,
                        "rotate", None)
             draw_label(self, SCREEN_WIDTH - 50, PAGE_RIGHT_POS[1] + PAGE_H - 50,
                                    "< >", None)
@@ -618,6 +571,7 @@ class ScribeScene(Scene):
 
     def _on_level_loaded(self):
         """Reset scene state to match the current level after a level advance."""
+        self.viewed_level = game_data.current_level
         raw_pieces = game_data.current_puzzle.pieces or []
         seen: set[str] = set()
         self._tray_types = []
@@ -683,6 +637,7 @@ class ScribeScene(Scene):
             self._dragging_piece.x = snap_col * BASE_TILE_SIZE
             self._dragging_piece.y = snap_row * BASE_TILE_SIZE
             grid.place(cells, self._dragging_piece)
+            Assets.sounds.draw_piece.play()
             self._placed_pieces.append(self._dragging_piece)
         # Invalid drop → piece disappears regardless of origin
         self._hover_cells.clear()
@@ -716,6 +671,7 @@ class ScribeScene(Scene):
                     self._drag_origin_cells = set()
                     self._click_mode        = False
                     self._mouse_down_pos    = (mx, my)
+                    Assets.sounds.pickup_art.play()
                     return
 
             # 2. Lift a piece already placed on the grid
@@ -769,20 +725,24 @@ class ScribeScene(Scene):
     # ── drawing ──────────────────────────────────────────────────────────────
 
     def _draw_page_text(self):
-        """Render the current puzzle's page_text centred in the page header."""
-        puzzle = game_data.current_puzzle
-        if puzzle is None or not puzzle.page_text:
-            return
-        side = game_data.current_side
-        px, py = PAGE_LEFT_POS if side == "left" else PAGE_RIGHT_POS
-        # Centre the label horizontally within the page, vertically within the
-        # header gap created by GRID_OFFSET[1].
-        header_mid_y = py + GRID_OFFSET[1] // 2
-        label = FONT.render(puzzle.page_text, True, (60, 35, 10))
-        self.screen.blit(label, (px + PAGE_W // 2 - label.get_width() // 2, header_mid_y - label.get_height() // 2))
+        """Render each visible page's page_text centred in its own header."""
+        spread_start = (self.viewed_level // 2) * 2
+        for level in (spread_start, spread_start + 1):
+            puzzle = self._puzzle_for(level)
+            if puzzle is None or not puzzle.page_text:
+                continue
+            side = "left" if level % 2 == 0 else "right"
+            px, py = PAGE_LEFT_POS if side == "left" else PAGE_RIGHT_POS
+            # Centre the label horizontally within the page, vertically within the
+            # header gap created by GRID_OFFSET[1].
+            header_mid_y = py + GRID_OFFSET[1] // 2
+            label = FONT.render(puzzle.page_text, True, (60, 35, 10))
+            self.screen.blit(label, (px + PAGE_W // 2 - label.get_width() // 2, header_mid_y - label.get_height() // 2))
 
     def _draw_grid(self):
-        """Draw the grid overlay on the current puzzle page."""
+        """Draw the live grid overlay — only while the active page is the one on screen."""
+        if self.mode != ScribeMode.INTERACTIVE:
+            return
         puzzle = game_data.current_puzzle
         if puzzle is None:
             return
@@ -799,14 +759,16 @@ class ScribeScene(Scene):
                 self.screen.blit(cell_surf, (ox + col * BASE_TILE_SIZE, oy + row * BASE_TILE_SIZE))
 
     def _draw_placed_pieces(self):
-        """Draw all pieces that have been placed on the grid."""
+        """Draw pieces placed on the live grid — only while its page is on screen."""
+        if self.mode != ScribeMode.INTERACTIVE:
+            return
         ox, oy = self._grid_origin()
         for piece in self._placed_pieces:
             self.screen.blit(piece.display_image, (ox + piece.x, oy + piece.y))
 
     def _draw_dragging_piece(self):
         """Draw the piece currently being dragged, following the mouse."""
-        if self._dragging_piece is None:
+        if self._dragging_piece is None or self.mode != ScribeMode.INTERACTIVE:
             return
         piece = self._dragging_piece
         x, y  = self._drag_pixel_pos
@@ -815,8 +777,8 @@ class ScribeScene(Scene):
         self.screen.blit(img, (x, y))
 
     def _draw_margin_pieces_options(self):
-        """Draw the type palette at the bottom of the screen."""
-        if not self._tray_types:
+        """Draw the type palette — only while the active page is the one on screen."""
+        if self.mode != ScribeMode.INTERACTIVE or not self._tray_types:
             return
         for scaled_image, rect in zip(self._tray_images, self._tray_rects):
             pygame.draw.rect(self.screen, (180, 165, 130), rect, 2)

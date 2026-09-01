@@ -313,6 +313,8 @@ class Sound:
     bookpage = SoundEffect(path="bookpage.mp3", volume=0.8)
     drop_item = SoundEffect(path="drop item.mp3", volume=0.8)
     pickup = SoundEffect(path="pick up.mp3", volume=0.8)
+    pickup_art = SoundEffect(path="tiny_splash.mp3", volume=0.8)
+    draw_piece = SoundEffect(path="fountain_pen.mp3", volume=0.8)
 
 
 
