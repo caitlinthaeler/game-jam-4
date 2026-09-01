@@ -62,7 +62,7 @@ _ARTEFACT_DEFS = [
         "cost": 10,
     },
     {
-        "title": "Chartulary of Scone Abbey (15th to 16th Century)",
+        "title": "Chartulary of Scone Abbey",
         "blurb": (
             "These documents contain a collection of marginalia; sketch work completed in "
             "the margins. Such examples found are faces, animals - also found in proper illustration "
