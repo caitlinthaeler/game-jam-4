@@ -5,6 +5,7 @@ from scene_manager import Scene
 from classes import Button, AnimatedButton, BackButton, get_clicked_button, format_background, scale_hover
 from assets_registry import Assets
 from game_manager import NewGame
+from slider import Slider
 from enum import Enum
 import pygame
 
@@ -58,9 +59,12 @@ class MenuScene(Scene):
         ]
 
         self.back_button = BackButton(self.screen, MenuState.CHOICES) # defaults only
-        self.vhs_intensity = self._vhs.intensity if self._vhs else 0.8
-        self.grain_slider_rect = pygame.Rect(BORDER*2, BORDER*7+24, SCREEN_WIDTH - BORDER*4, 24)
-        self._slider_dragging = False
+        self.grain_slider = Slider(
+            pygame.Rect(BORDER*4, BORDER*7+24, SCREEN_WIDTH // 2, 24),
+            value=self._vhs.intensity if self._vhs else 0.8,
+            on_change=self._vhs.set_intensity if self._vhs else None,
+            label_font=FONT,
+        )
 
         self.spacebar = pygame.image.load(os.path.join(UI_PATH, "spacebar.png")).convert_alpha()
         self.spacebar = pygame.transform.scale(self.spacebar, (200, 70))
@@ -96,9 +100,9 @@ class MenuScene(Scene):
     def render_info_screen(self):
         for _ in self.handle_events([self.back_button]): pass
         self.screen.blit(self.info, (0, 0))
-        overlay = pygame.Surface((SCREEN_WIDTH-BORDER*2, SCREEN_HEIGHT-BORDER*5), pygame.SRCALPHA)
+        overlay = pygame.Surface((SCREEN_WIDTH-BORDER*2, SCREEN_HEIGHT-BORDER*2), pygame.SRCALPHA)
         pygame.draw.rect(overlay, (255, 255, 255, 150), (overlay.get_rect()))
-        self.screen.blit(overlay, (BORDER, BORDER*3+10))
+        self.screen.blit(overlay, (BORDER, BORDER))
         self.back_button.draw()
 
         # display text:
@@ -117,37 +121,16 @@ class MenuScene(Scene):
 
     def render_settings_screen(self):
         for _ in self.handle_events([self.back_button]): pass
-        self.screen.blit(self.main_background, (0, 0))
-        overlay = pygame.Surface((SCREEN_WIDTH-BORDER*2, SCREEN_HEIGHT-BORDER*5), pygame.SRCALPHA)
+        self.screen.blit(self.info, (0, 0))
+        overlay = pygame.Surface((SCREEN_WIDTH-BORDER*2, SCREEN_HEIGHT-BORDER*2), pygame.SRCALPHA)
         pygame.draw.rect(overlay, (255, 255, 255, 150), (overlay.get_rect()))
-        self.screen.blit(overlay, (BORDER, BORDER*3+10))
+        self.screen.blit(overlay, (BORDER, BORDER))
         self.back_button.draw()
 
         label = FONT.render("Grain intensity", True, (0, 0, 0))
-        self.screen.blit(label, (self.grain_slider_rect.left, self.grain_slider_rect.top - 32))
+        self.screen.blit(label, (self.grain_slider.rect.left, self.grain_slider.rect.top - 32))
 
-        # slider track and fill
-        pygame.draw.rect(self.screen, (200, 200, 200), self.grain_slider_rect, border_radius=12)
-        fill_rect = self.grain_slider_rect.copy()
-        fill_rect.width = int(self.vhs_intensity * self.grain_slider_rect.width)
-        pygame.draw.rect(self.screen, (120, 120, 120), fill_rect, border_radius=12)
-
-        knob_x = self.grain_slider_rect.left + int(self.vhs_intensity * self.grain_slider_rect.width)
-        knob_radius = self.grain_slider_rect.height // 2 + 4
-        knob_center = (knob_x, self.grain_slider_rect.centery)
-        pygame.draw.circle(self.screen, (255, 255, 255), knob_center, knob_radius)
-        pygame.draw.circle(self.screen, (80, 80, 80), knob_center, knob_radius, 2)
-
-        percent_label = FONT.render(f"{int(self.vhs_intensity * 100)}%", True, (0, 0, 0))
-        self.screen.blit(percent_label, (self.grain_slider_rect.right + 16, self.grain_slider_rect.centery - percent_label.get_height() // 2))
-
-
-
-    def _update_vhs_intensity(self, x: int):
-        rel_x = max(0, min(x - self.grain_slider_rect.left, self.grain_slider_rect.width))
-        self.vhs_intensity = rel_x / self.grain_slider_rect.width
-        if self._vhs:
-            self._vhs.set_intensity(self.vhs_intensity)
+        self.grain_slider.draw(self.screen)
 
     def launch_game(self):
         self.state = MenuState.LAUNCH_GAME
@@ -169,16 +152,10 @@ class MenuScene(Scene):
             if event.type == pygame.QUIT:
                 self.state = MenuState.QUIT
                 return # exit immediately
-            # return button that was clicked, if there was one:
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if self.grain_slider_rect.collidepoint(event.pos):
-                    self._slider_dragging = True
-                    self._update_vhs_intensity(event.pos[0])
-            elif event.type == pygame.MOUSEMOTION and self._slider_dragging:
-                self._update_vhs_intensity(event.pos[0])
-            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self._slider_dragging:
-                self._slider_dragging = False
+            if self.state == MenuState.SETTINGS:
+                self.grain_slider.handle_event(event)
 
+            # return button that was clicked, if there was one:
             clicked_button = get_clicked_button(event, buttons)
             if clicked_button:
                 print(f"Clicked button: {clicked_button}")

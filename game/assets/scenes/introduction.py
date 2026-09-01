@@ -1,5 +1,6 @@
 import pygame
 from classes import format_background
+from assets_registry import Assets
 from scene_manager import Scene
 from dialogue_manager import DialogueManager
 
@@ -10,6 +11,7 @@ class IntroductionScene(Scene):
         super().__init__(screen, clock)
         self._game = game
         self._dialogue = DialogueManager(screen, clock, vhs=vhs)
+        self.music = Assets.background_music.gameplay
         self.main_background = format_background(self.screen, "archive_background.png")
 
 

@@ -30,22 +30,22 @@ from assets_registry import Assets, Animation, MarginPiece
 from classes import (
     AnimatedButton, Button, get_clicked_button,
     scale_hover, tint_hover, format_background, draw_label,
-    Grid, CellState,
+    Grid, CellState, PuzzleData,
 )
 from config import BORDER, SCREEN_WIDTH, SCREEN_HEIGHT, FONT, BASE_TILE_SIZE, SPRITES_DIR
 from game_manager import game_data, SubmitResult
 
 # ── layout constants ────────────────────────────────────────────────────────
 
-PAGE_W, PAGE_H = 320, 480          # in-book page slot dimensions (grid area)
+PAGE_W, PAGE_H = 350, 448          # in-book page slot dimensions (grid area)
 HINT_PAGE_W, HINT_PAGE_H = 24*5, 32*5  # floating hint page outside the book
 # Book is 2×PAGE_W wide; centre it on screen.
-BOOK_POS       = (SCREEN_WIDTH//2 - 250, -80)
+BOOK_POS       = (SCREEN_WIDTH//2 - 350, -160)
 # Left page occupies the left half of the book; right page the right half.
-PAGE_LEFT_POS  = (BOOK_POS[0]+64,          BOOK_POS[1])
-PAGE_RIGHT_POS = (BOOK_POS[0]+64+ PAGE_W, BOOK_POS[1])
-HINT_PAGE_LEFT_POS = (20, BOOK_POS[1]+(PAGE_H // 2 - HINT_PAGE_H // 2))
-HINT_PAGE_RIGHT_POS = (BOOK_POS[0]+(PAGE_W*2)+20, BOOK_POS[1]+(PAGE_H // 2 - HINT_PAGE_H // 2))
+PAGE_LEFT_POS  = (BOOK_POS[0]+10, BOOK_POS[1]+130)
+PAGE_RIGHT_POS = (BOOK_POS[0]+5+ PAGE_W, BOOK_POS[1]+130)
+HINT_PAGE_LEFT_POS = (-5, SCREEN_HEIGHT - HINT_PAGE_H - 50)
+HINT_PAGE_RIGHT_POS = (SCREEN_WIDTH - HINT_PAGE_W + 5, SCREEN_HEIGHT - HINT_PAGE_H - 50)
 HINT_FADE_SPEED  = 8               # alpha units per frame
 SLIDE_SPEED      = 7               # pixels per frame
 PAGE_TURN_FRAMES = 40              # frames for the page-turn flash
@@ -54,12 +54,19 @@ PAGE_TURN_FRAMES = 40              # frames for the page-turn flash
 # Grid is drawn inset from the page origin by this many pixels.
 GRID_OFFSET      = (0, 40)
 # Piece tray sits below the book area.
-TRAY_Y           = BOOK_POS[1] + PAGE_H + 20
-TRAY_PIECE_SIZE  = 32              # display size of each tray thumbnail (px)
-TRAY_SPACING     = 150              # centre-to-centre horizontal gap in tray
+TRAY_Y           = 475
+TRAY_PIECE_SIZE  = 64              # display size of each tray thumbnail (px)
+TRAY_SPACING     = 75              # centre-to-centre horizontal gap in tray
 # Tint colours for drag feedback
 _COL_VALID   = (130, 200, 130, 160)
 _COL_INVALID = (220, 60,  60,  160)
+
+
+def _scale_to_fit(surface: pygame.Surface, max_size: int) -> pygame.Surface:
+    """Scale surface down to fit within a max_size x max_size box, preserving aspect ratio."""
+    w, h = surface.get_size()
+    scale = min(max_size / w, max_size / h)
+    return pygame.transform.smoothscale(surface, (max(1, round(w * scale)), max(1, round(h * scale))))
 
 
 # ── tiny per-frame effect objects ───────────────────────────────────────────
@@ -176,9 +183,9 @@ class _TextRevealEffect:
 # ── scene modes ─────────────────────────────────────────────────────────────
 
 class ScribeMode(Enum):
-    INTERACTIVE = auto()   # player can drag/drop on current-level page
-    TRANSITION  = auto()   # effects running; all input locked
-    REVIEW      = auto()   # browsing old pages; no drag/drop
+    INTERACTIVE = 1   # player can drag/drop on current-level page
+    TRANSITION  = 2   # effects running; all input locked
+    REVIEW      = 3   # browsing old pages; no drag/drop
 
 
 # ── main scene ──────────────────────────────────────────────────────────────
@@ -239,6 +246,8 @@ class ScribeScene(Scene):
         self._level_advance_pending: bool = False
         # Screen-space rects for each tray slot — fixed, never rebuilt.
         self._tray_rects: list[pygame.Rect] = []
+        # Cached scaled-down images, one per tray slot, rebuilt alongside rects.
+        self._tray_images: list[pygame.Surface] = []
         self._rebuild_tray_rects()
 
         # ── nav buttons ──
@@ -279,8 +288,8 @@ class ScribeScene(Scene):
             surface=self.screen,
             next_state="submit",
             animation=Assets.animations.default_button,
-            x=SCREEN_WIDTH // 2 - 100, y=SCREEN_HEIGHT - 80,
-            width=200, height=55,
+            x=SCREEN_WIDTH // 2 -100, y=SCREEN_HEIGHT - 50,
+            width=200, height=40,
             text="submit solution",
             hover_transforms=[tint_hover((5, 5, 5)), scale_hover(1.1)],
         )
@@ -432,10 +441,9 @@ class ScribeScene(Scene):
 
         self.active_effects = [_FadeEffect(old_surf, new_surf, pos)]
 
-    def _capture_book_page(self) -> pygame.Surface:
-        """Render the current puzzle's grid and placed pieces to an off-screen surface."""
+    def _capture_book_page(self, puzzle: "PuzzleData | None") -> pygame.Surface:
+        """Render the given puzzle's grid and currently placed pieces to an off-screen surface."""
         surf = pygame.Surface((PAGE_W, PAGE_H), pygame.SRCALPHA)
-        puzzle = game_data.current_puzzle
         if not puzzle:
             return surf
         gx, gy = GRID_OFFSET
@@ -458,8 +466,11 @@ class ScribeScene(Scene):
         new_pos     = HINT_PAGE_LEFT_POS if new_side == "left" else HINT_PAGE_RIGHT_POS
         prev_pos    = HINT_PAGE_LEFT_POS if prev_side == "left" else HINT_PAGE_RIGHT_POS
 
-        # Freeze the completed book page (grid + pieces) before resetting
-        self._book_snapshots[prev_level] = self._capture_book_page()
+        # Freeze the completed book page (grid + pieces) before resetting.
+        # current_puzzle has already advanced to new_level by this point, so
+        # pull the just-completed puzzle from level_snapshots instead.
+        prev_puzzle = game_data.level_snapshots.get(prev_level)
+        self._book_snapshots[prev_level] = self._capture_book_page(prev_puzzle)
 
         old_hint = self._get_hint_surf(prev_level)
         new_hint = self._get_hint_surf(new_level)
@@ -525,8 +536,13 @@ class ScribeScene(Scene):
     def _draw_book(self):
         book = Assets.animations.book.current_frame.image
         self.screen.blit(book, BOOK_POS)
-        # Overlay completed-level snapshots inside their respective book pages
+        # Overlay snapshots belonging to the currently open spread only —
+        # a page turn retires the previous spread's pages from view until
+        # the player pages back to review them.
+        current_spread = self.viewed_level // 2
         for level, surf in self._book_snapshots.items():
+            if level // 2 != current_spread:
+                continue
             side = "left" if level % 2 == 0 else "right"
             pos = PAGE_LEFT_POS if side == "left" else PAGE_RIGHT_POS
             self.screen.blit(surf, pos)
@@ -578,6 +594,13 @@ class ScribeScene(Scene):
         draw_label(self, SCREEN_WIDTH // 2 - 40, BORDER + 2,
                    f"Level {game_data.current_level + 1}", None)
 
+        # Rotation hint — piece rotation unlocks from the second level onward
+        if self.mode == ScribeMode.INTERACTIVE and game_data.current_level >= 1:
+            draw_label(self, SCREEN_WIDTH - 70, PAGE_RIGHT_POS[1] + PAGE_H - 70,
+                       "rotate", None)
+            draw_label(self, SCREEN_WIDTH - 50, PAGE_RIGHT_POS[1] + PAGE_H - 50,
+                                   "< >", None)
+
         mode_text = {
             ScribeMode.INTERACTIVE: "",
             ScribeMode.TRANSITION:  "[transition]",
@@ -612,14 +635,18 @@ class ScribeScene(Scene):
         self._hint_surfs.pop(game_data.current_level, None)
 
     def _rebuild_tray_rects(self):
-        """Compute fixed screen rects for the type palette. Called once at init."""
+        """Compute fixed screen rects and cached thumbnails for the type palette."""
         n = len(self._tray_types)
         total_w = n * TRAY_SPACING
         start_x = SCREEN_WIDTH // 2 - total_w // 2
+        self._tray_images = [
+            _scale_to_fit(piece.display_image, TRAY_PIECE_SIZE)
+            for piece in self._tray_types
+        ]
         self._tray_rects = [
             pygame.Rect(
                 start_x + i * TRAY_SPACING, TRAY_Y,
-                *self._tray_types[i].display_image.get_size()
+                *self._tray_images[i].get_size()
             )
             for i in range(n)
         ]
@@ -683,8 +710,7 @@ class ScribeScene(Scene):
             for i, rect in enumerate(self._tray_rects):
                 if rect.collidepoint(mx, my):
                     prototype = self._tray_types[i]
-                    fresh = MarginPiece(prototype.piece_id, piece_cell_size=prototype.piece_cell_size)
-                    self._dragging_piece    = fresh
+                    self._dragging_piece    = MarginPiece(prototype.piece_id, prototype.x, prototype.y, TRAY_PIECE_SIZE)
                     self._drag_mouse_offset = (mx - rect.x, my - rect.y)
                     self._drag_pixel_pos    = (rect.x, rect.y)
                     self._drag_origin_cells = set()
@@ -730,6 +756,15 @@ class ScribeScene(Scene):
             dx, dy = self._drag_mouse_offset
             snap_col, snap_row = self._snap_col_row(mx - dx, my - dy)
             self._drop_piece(grid, snap_col, snap_row)
+
+        elif (event.type == pygame.KEYDOWN and self._dragging_piece is not None
+              and game_data.current_level >= 1
+              and event.key in (pygame.K_LEFT, pygame.K_RIGHT)):
+            self._dragging_piece.rotate(clockwise=(event.key == pygame.K_RIGHT))
+            px, py = self._drag_pixel_pos
+            snap_col, snap_row = self._snap_col_row(px, py)
+            self._hover_cells = self._piece_cells_at(self._dragging_piece, snap_col, snap_row)
+            self._update_grid_hover()
 
     # ── drawing ──────────────────────────────────────────────────────────────
 
@@ -783,6 +818,6 @@ class ScribeScene(Scene):
         """Draw the type palette at the bottom of the screen."""
         if not self._tray_types:
             return
-        for piece, rect in zip(self._tray_types, self._tray_rects):
+        for scaled_image, rect in zip(self._tray_images, self._tray_rects):
             pygame.draw.rect(self.screen, (180, 165, 130), rect, 2)
-            self.screen.blit(piece.display_image, rect.topleft)
+            self.screen.blit(scaled_image, rect.topleft)

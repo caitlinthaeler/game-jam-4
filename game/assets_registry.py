@@ -117,6 +117,19 @@ class MarginPiece:
         else:
             self.display_image = image
 
+    def rotate(self, clockwise: bool = True):
+        """Rotate the piece's cell shape and display image by 90 degrees."""
+        if not self.pixels:
+            return
+        if clockwise:
+            max_row = max(row for _, row in self.pixels)
+            self.pixels = {(max_row - row, col) for col, row in self.pixels}
+            self.display_image = pygame.transform.rotate(self.display_image, -90)
+        else:
+            max_col = max(col for col, _ in self.pixels)
+            self.pixels = {(row, max_col - col) for col, row in self.pixels}
+            self.display_image = pygame.transform.rotate(self.display_image, 90)
+
     def get_cells_at_position(self) -> set:
         """Return absolute (col, row) grid cells based on current x/y position."""
         col_offset = self.x // BASE_TILE_SIZE
@@ -208,7 +221,7 @@ class Animations:
     toggle_off = Animation([Frame(path="items/toggle_off.png", size=(100, 50)),], ticks_per_frame=30)
 
     # hint_page = Animation([Frame(path="items/button.png")], ticks_per_frame=30)
-    book = Animation([Frame(path="items/book.png", size=(480, 480), )], ticks_per_frame=30)
+    book = Animation([Frame(path="items/book.png", size=(700, 700))], ticks_per_frame=30)
     page_turning = Animation([Frame(path="items/player_map.png")], ticks_per_frame=30)
 
     level_1_hint_1 = Animation([Frame(path="hints/hint_test_1_1.png")], ticks_per_frame=30)
@@ -245,9 +258,9 @@ class Animations:
     solution_2 = Animation([Frame(path="items/margin_test_1.png")], ticks_per_frame=30)
     solution_3 = Animation([Frame(path="items/margin_test_2.png")], ticks_per_frame=30)
 
-    solution1 = Animation([Frame(path="items/answer_key_1.png")], ticks_per_frame=30)
-    solution2 = Animation([Frame(path="items/answer_key_2.png")], ticks_per_frame=30)
-    solution3 = Animation([Frame(path="items/answer_key_3.png")], ticks_per_frame=30)
+    solution1 = Animation([Frame(path="items/answer_key_1_revised.png")], ticks_per_frame=30)
+    solution2 = Animation([Frame(path="items/answer_key_2_revised.png")], ticks_per_frame=30)
+    solution3 = Animation([Frame(path="items/answer_key_3_revised.png")], ticks_per_frame=30)
 
     book_flip_animation = Animation([
         Frame(path="items/book_flip_animation1.png", size=(480, 320)),
@@ -270,20 +283,20 @@ class Animations:
     
 
 class MarginPieces:
-    test_piece = MarginPiece(path="pieces/organic_shape.png")
-    margin_piece_1 = MarginPiece(path="pieces/piece_test_1.png")
-    margin_piece_2 = MarginPiece(path="pieces/piece_test_2.png")
-    margin_piece_3 = MarginPiece(path="pieces/piece_test_3.png")
-    margin_piece_4 = MarginPiece(path="pieces/piece_test_4.png")
-    margin_piece_5 = MarginPiece(path="pieces/piece_test_5.png")
+    # test_piece = MarginPiece(path="pieces/organic_shape.png")
+    # margin_piece_1 = MarginPiece(path="pieces/piece_test_1.png")
+    # margin_piece_2 = MarginPiece(path="pieces/piece_test_2.png")
+    # margin_piece_3 = MarginPiece(path="pieces/piece_test_3.png")
+    # margin_piece_4 = MarginPiece(path="pieces/piece_test_4.png")
+    # margin_piece_5 = MarginPiece(path="pieces/piece_test_5.png")
 
     # use these — 320×320 source images use 48px/cell; 640×___ use 96px/cell
-    adorning_corner = MarginPiece(path="pieces/adorning_corner.png", piece_cell_size=96)
-    blue_flowers    = MarginPiece(path="pieces/blue_flowers.png",    piece_cell_size=48)
-    fish            = MarginPiece(path="pieces/fish.png",            piece_cell_size=48)
-    flowers         = MarginPiece(path="pieces/flowers.png",         piece_cell_size=96)
-    poppies         = MarginPiece(path="pieces/poppies.png",         piece_cell_size=48)
-    thistles        = MarginPiece(path="pieces/thistles.png",        piece_cell_size=48)
+    adorning_corner = MarginPiece(path="pieces/adorning_corner.png", piece_cell_size=64)
+    blue_flowers    = MarginPiece(path="pieces/blue_flowers.png",piece_cell_size=32)
+    fish            = MarginPiece(path="pieces/fish.png", piece_cell_size=32)
+    flowers         = MarginPiece(path="pieces/flowers.png",piece_cell_size=32)
+    poppies         = MarginPiece(path="pieces/poppies.png", piece_cell_size=32)
+    thistles        = MarginPiece(path="pieces/thistles.png", piece_cell_size=32)
 
 class Sound:
     birds_chirping = SoundEffect(path="birds_chirping.mp3")

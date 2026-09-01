@@ -3,21 +3,21 @@ from assets_registry import Assets, Animation
 from classes import PuzzleData, Grid
 
 
-def grid_from_image(animation: Animation, cell_px_w: int, cell_px_h: int) -> Grid:
+def grid_from_image(animation: Animation, pixel_res: int) -> Grid:
     """Build a Grid whose shape comes from a pixel-art solution image.
 
-    cell_px_w / cell_px_h: how many image pixels wide/tall each grid cell is.
+    pixel_res: how many image pixels wide/tall each grid cell is.
     A cell is valid (playable) when its centre pixel has alpha > 0.
     """
     surface = animation.frames[0].image
     img_w, img_h = surface.get_size()
-    cols = img_w // cell_px_w
-    rows = img_h // cell_px_h
+    cols = img_w // pixel_res
+    rows = img_h // pixel_res
     valid_cells = set()
     for row in range(rows):
         for col in range(cols):
-            cx = col * cell_px_w + cell_px_w // 2
-            cy = row * cell_px_h + cell_px_h // 2
+            cx = col * pixel_res + pixel_res // 2
+            cy = row * pixel_res + pixel_res // 2
             if surface.get_at((cx, cy)).a > 0:
                 valid_cells.add((col, row))
     return Grid(cols, rows, valid_cells)
@@ -97,7 +97,7 @@ def new_level_0_data():
             Assets.animations.level_1_hint_3,
         ],
         trust_points=[10, 5, 1],
-        grid=grid_from_image(Assets.animations.solution1, cell_px_w=48, cell_px_h=48),
+        grid=grid_from_image(Assets.animations.solution1, pixel_res=64),
         solution=Assets.animations.solution1,
         page_text="The Book of Hours",
     )
@@ -108,8 +108,8 @@ def new_level_1_data():
         level=1,
         stage=0,
         pieces=[
-            Assets.pieces.fish,
             Assets.pieces.blue_flowers,
+             Assets.pieces.fish,
             Assets.pieces.thistles,
             Assets.pieces.adorning_corner,
             ],
@@ -119,7 +119,7 @@ def new_level_1_data():
             Assets.animations.level_2_hint_3,
         ],
         trust_points=[10, 5, 1],
-        grid=grid_from_image(Assets.animations.solution2, cell_px_w=48, cell_px_h=48),
+        grid=grid_from_image(Assets.animations.solution2, pixel_res=64),
         solution=Assets.animations.solution2,
         page_text="Psalter of Coldingham",
     )
@@ -131,9 +131,13 @@ def new_level_2_data():
         stage=0,
         pieces=[
             Assets.pieces.blue_flowers,
+            Assets.pieces.fish,
+            Assets.pieces.poppies,
             Assets.pieces.thistles,
             Assets.pieces.adorning_corner,
-            Assets.pieces.flowers
+            Assets.pieces.flowers,
+            
+            
             ],
         hints=[
             Assets.animations.level_3_hint_1,
@@ -141,7 +145,7 @@ def new_level_2_data():
             Assets.animations.level_3_hint_3,
         ],
         trust_points=[10, 5, 1],
-        grid=grid_from_image(Assets.animations.solution3, cell_px_w=48, cell_px_h=48),
+        grid=grid_from_image(Assets.animations.solution3, pixel_res=64),
         solution=Assets.animations.solution3,
         page_text="Chronicle of the Marches",
     )
