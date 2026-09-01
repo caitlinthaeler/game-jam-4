@@ -1,0 +1,20 @@
+[
+  {
+    "colour": [
+      242,
+      36,
+      36
+    ],
+    "piece_id": "pieces/blue_flowers.png",
+    "rotation": 0
+  },
+  {
+    "colour": [
+      36,
+      242,
+      242
+    ],
+    "piece_id": "pieces/poppies.png",
+    "rotation": 0
+  }
+]

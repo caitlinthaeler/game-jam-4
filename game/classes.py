@@ -315,7 +315,7 @@ class PuzzleData:
         self.hints = hints                 # list of Animation per stage
         self.trust_points = trust_points   # list of int per stage
         self.grid: Grid = grid if isinstance(grid, Grid) else Grid(8, 10)
-        self.solution = solution           # animation asset
+        self.solution = solution 
         self.page_text: str = page_text    # decorative text shown at the top of the page
 
 
@@ -340,12 +340,18 @@ class PuzzleData:
         self.pieces.remove(piece)
 
     def is_correct(self) -> bool:
-        return all(
-            self.grid.cells[row][col] == CellState.FILLED
-            for row in range(self.grid.height)
-            for col in range(self.grid.width)
-            if self.grid.cells[row][col] != CellState.INVALID
-        )
+        """True if every valid cell holds the piece (and orientation) the solution requires."""
+        if not self.solution:
+            return False
+        for row in range(self.grid.height):
+            for col in range(self.grid.width):
+                if self.grid.cells[row][col] == CellState.INVALID:
+                    continue
+                piece_id, rotation = self.solution.get((col, row), (None, None))
+                piece = self.grid.cell_contents[row][col]
+                if piece is None or piece.piece_id != piece_id or piece.rotation != rotation:
+                    return False
+        return True
 
     
         

@@ -1,0 +1,38 @@
+[
+  {
+    "colour": [
+      242,
+      36,
+      36
+    ],
+    "piece_id": "pieces/adorning_corner.png",
+    "rotation": 90
+  },
+  {
+    "colour": [
+      139,
+      242,
+      36
+    ],
+    "piece_id": "pieces/blue_flowers.png",
+    "rotation": 0
+  },
+  {
+    "colour": [
+      36,
+      242,
+      242
+    ],
+    "piece_id": "pieces/fish.png",
+    "rotation": 0
+  },
+  {
+    "colour": [
+      139,
+      36,
+      242
+    ],
+    "piece_id": "pieces/thistles.png",
+    "rotation": 0
+  }
+]

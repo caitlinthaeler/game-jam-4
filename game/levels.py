@@ -1,4 +1,6 @@
 
+import json
+
 from assets_registry import Assets, Animation
 from classes import PuzzleData, Grid
 
@@ -21,6 +23,39 @@ def grid_from_image(animation: Animation, pixel_res: int) -> Grid:
             if surface.get_at((cx, cy)).a > 0:
                 valid_cells.add((col, row))
     return Grid(cols, rows, valid_cells)
+
+
+def solution_from_idmap(idmap_animation: Animation, pixel_res: int) -> dict:
+    """Build {(col, row): (piece_id, rotation)} from a generated id-map image.
+
+    The id-map is never hand-authored — see tools/gen_idmaps.py, which locates
+    each piece's placement (position + rotation) in the solution art via exact
+    pixel matching and flood-fills its region with a flat colour. Here we just
+    sample each cell centre (same technique as grid_from_image, so it always
+    stays in lockstep with the grid shape) and look the colour up in the
+    generated legend.
+    """
+    frame = idmap_animation.frames[0]
+    surface = frame.image
+    legend_path = frame.path.rsplit(".", 1)[0] + ".json"
+    with open(legend_path) as f:
+        legend = json.load(f)
+    colour_to_key = {tuple(entry["colour"]): (entry["piece_id"], entry["rotation"]) for entry in legend}
+
+    img_w, img_h = surface.get_size()
+    cols = img_w // pixel_res
+    rows = img_h // pixel_res
+    solution = {}
+    for row in range(rows):
+        for col in range(cols):
+            cx = col * pixel_res + pixel_res // 2
+            cy = row * pixel_res + pixel_res // 2
+            r, g, b, a = surface.get_at((cx, cy))
+            if a > 0:
+                key = colour_to_key.get((r, g, b))
+                if key:
+                    solution[(col, row)] = key
+    return solution
 
 
 # def new_level_0_data():
@@ -98,7 +133,7 @@ def new_level_0_data():
         ],
         trust_points=[10, 5, 1],
         grid=grid_from_image(Assets.animations.solution1, pixel_res=64),
-        solution=Assets.animations.solution1,
+        solution=solution_from_idmap(Assets.animations.solution1_idmap, pixel_res=64),
         page_text="The Book of Hours",
     )
 
@@ -120,7 +155,7 @@ def new_level_1_data():
         ],
         trust_points=[10, 5, 1],
         grid=grid_from_image(Assets.animations.solution2, pixel_res=64),
-        solution=Assets.animations.solution2,
+        solution=solution_from_idmap(Assets.animations.solution2_idmap, pixel_res=64),
         page_text="Psalter of Coldingham",
     )
 
@@ -146,7 +181,7 @@ def new_level_2_data():
         ],
         trust_points=[10, 5, 1],
         grid=grid_from_image(Assets.animations.solution3, pixel_res=64),
-        solution=Assets.animations.solution3,
+        solution=solution_from_idmap(Assets.animations.solution3_idmap, pixel_res=64),
         page_text="Chronicle of the Marches",
     )
 

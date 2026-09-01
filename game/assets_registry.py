@@ -95,6 +95,9 @@ class MarginPiece:
         self.piece_cell_size = piece_cell_size
         self.x = x
         self.y = y
+        # Current orientation in degrees (0/90/180/270) — a piece rotated
+        # differently is a distinct placement for solution-matching purposes.
+        self.rotation = 0
 
         # load image once
         if path:
@@ -125,10 +128,12 @@ class MarginPiece:
             max_row = max(row for _, row in self.pixels)
             self.pixels = {(max_row - row, col) for col, row in self.pixels}
             self.display_image = pygame.transform.rotate(self.display_image, -90)
+            self.rotation = (self.rotation + 90) % 360
         else:
             max_col = max(col for col, _ in self.pixels)
             self.pixels = {(row, max_col - col) for col, row in self.pixels}
             self.display_image = pygame.transform.rotate(self.display_image, 90)
+            self.rotation = (self.rotation - 90) % 360
 
     def get_cells_at_position(self) -> set:
         """Return absolute (col, row) grid cells based on current x/y position."""
@@ -261,6 +266,14 @@ class Animations:
     solution1 = Animation([Frame(path="items/answer_key_1_revised.png")], ticks_per_frame=30)
     solution2 = Animation([Frame(path="items/answer_key_2_revised.png")], ticks_per_frame=30)
     solution3 = Animation([Frame(path="items/answer_key_3_revised.png")], ticks_per_frame=30)
+
+    # Generated (not hand-authored) companion images: each valid cell is flood-filled
+    # with a flat colour identifying which (piece_id, rotation) belongs there. See
+    # answer_key_N_idmap.json for the colour legend. Regenerate both via
+    # gen_idmaps.py if the solution art or piece sprites change.
+    solution1_idmap = Animation([Frame(path="items/answer_key_1_idmap.png")], ticks_per_frame=30)
+    solution2_idmap = Animation([Frame(path="items/answer_key_2_idmap.png")], ticks_per_frame=30)
+    solution3_idmap = Animation([Frame(path="items/answer_key_3_idmap.png")], ticks_per_frame=30)
 
     book_flip_animation = Animation([
         Frame(path="items/book_flip_animation1.png", size=(480, 320)),
