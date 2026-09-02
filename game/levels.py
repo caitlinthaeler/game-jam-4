@@ -135,7 +135,7 @@ def new_level_0_data():
         grid=grid_from_image(Assets.animations.solution1, pixel_res=64),
         solution=solution_from_idmap(Assets.animations.solution1_idmap, pixel_res=64),
         page_text="The Book of Hours",
-        level_complete_text="Level 1 Complete Level 1 Complete Level 1 Complete Level 1 Complete Level 1 Complete Level 1 Complete Level 1 Complete",
+        level_complete_text="The femaale saints in prayer books stood as models to teacha  woman how to live her life, often exemplifying the virtues of chastity and fidelity.",
     )
 
 
@@ -158,7 +158,7 @@ def new_level_1_data():
         grid=grid_from_image(Assets.animations.solution2, pixel_res=64),
         solution=solution_from_idmap(Assets.animations.solution2_idmap, pixel_res=64),
         page_text="Psalter of Coldingham",
-        level_complete_text="Level 2 Complete Level 2 Complete Level 2 Complete Level 2 Complete Level 2 Complete Level 2 Complete Level 2 Complete",
+        level_complete_text="Prayerbooks often becanme heirlooms from mother to daughter, and other female heirs.",
     )
 
 
@@ -185,7 +185,7 @@ def new_level_2_data():
         grid=grid_from_image(Assets.animations.solution3, pixel_res=64),
         solution=solution_from_idmap(Assets.animations.solution3_idmap, pixel_res=64),
         page_text="Chronicle of the Marches",
-        level_complete_text="Level 3 Complete Level 3 Complete Level 3 Complete Level 3 Complete Level 3 Complete Level 3 Complete Level 3 Complete",
+        level_complete_text="Manuscripts and prayer books were often customised for the use of women; they sometimes included special devotions for expecting and current mothers.",
     )
 
 

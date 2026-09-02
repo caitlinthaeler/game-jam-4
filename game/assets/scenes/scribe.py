@@ -34,7 +34,7 @@ PAGE_TEXT_RIGHT = (PAGE_RIGHT_POS[0]+20,  PAGE_RIGHT_POS[1]+170)
 PAGE_TEXT_BOX_SIZE = (180, 180)
 
 LEVEL_COMPLETE_TEXT_SPEED = .5
-LEVEL_COMPLETE_FONT_SIZE = 22
+LEVEL_COMPLETE_FONT_SIZE = 16
 LEVEL_COMPLETE_FONT_COLOR = (0, 0, 0)
 
 # Final "you beat the book" overlay (see ScribeMode.COMPLETE)
@@ -704,10 +704,15 @@ class ScribeScene(Scene):
     def _visible_page_positions(self) -> list[tuple[int, tuple]]:
         """
         Return [(level, pos)] for the hint pages currently visible.
-        Only the active level's hint floats outside the book;
-        completed levels' pages are shown inside the book as snapshots.
+        Only the active level's hint floats outside the book, and only while
+        that page isn't solved yet — completed levels' pages are shown
+        inside the book as snapshots and no longer need a hint at all
+        (this also covers the final level, which stays "current" forever
+        once the book is done).
         """
         level = game_data.current_level
+        if level in game_data.level_snapshots:
+            return []
         side  = "left" if level % 2 == 0 else "right"
         pos   = HINT_PAGE_LEFT_POS if side == "left" else HINT_PAGE_RIGHT_POS
         return [(level, pos)]
@@ -746,15 +751,6 @@ class ScribeScene(Scene):
             draw_label(self, SCREEN_WIDTH - 50, PAGE_RIGHT_POS[1] + PAGE_H - 50,
                                    "< >", None)
 
-        mode_text = {
-            ScribeMode.INTERACTIVE: "",
-            ScribeMode.TRANSITION:  "[transition]",
-            ScribeMode.REVIEW:      "[viewing old page]",
-        }.get(self.mode, "")
-        if mode_text:
-            draw_label(self, SCREEN_WIDTH // 2 - 60, BORDER + 24, mode_text, None)
-
-        
     # ── drag helpers ─────────────────────────────────────────────────────────
 
     def _grid_origin(self) -> tuple[int, int]:
