@@ -1,41 +1,56 @@
+import os
 import pygame
-from enum import Enum, auto
+from enum import Enum
 
 from scene_manager import Scene
 from assets_registry import Assets, Animation, MarginPiece
 from classes import (
     AnimatedButton, Button, get_clicked_button,
     scale_hover, tint_hover, format_background, draw_label,
-    Grid, CellState, PuzzleData,
+    CellState, PuzzleData,
 )
-from config import BORDER, SCREEN_WIDTH, SCREEN_HEIGHT, FONT, BASE_TILE_SIZE, SPRITES_DIR
+from config import BORDER, SCREEN_WIDTH, SCREEN_HEIGHT, FONT, BASE_TILE_SIZE, SPRITES_DIR, UI_PATH
 from game_manager import game_data, SubmitResult
 
 # ── layout constants ────────────────────────────────────────────────────────
 
-PAGE_W, PAGE_H = 350, 448          # in-book page slot dimensions (grid area)
-HINT_PAGE_W, HINT_PAGE_H = 24*5, 32*5  # floating hint page outside the book
+
 # Book is 2×PAGE_W wide; centre it on screen.
-BOOK_POS       = (SCREEN_WIDTH//2 - 350, -160)
-# Left page occupies the left half of the book; right page the right half.
+BOOK_POS = (SCREEN_WIDTH//2 - 350, -160)
+
+# grid dimensions
+PAGE_W, PAGE_H = 350, 448
 PAGE_LEFT_POS  = (BOOK_POS[0]+10, BOOK_POS[1]+130)
 PAGE_RIGHT_POS = (BOOK_POS[0]+5+ PAGE_W, BOOK_POS[1]+130)
+
+HINT_PAGE_W, HINT_PAGE_H = 24*5, 32*5
 HINT_PAGE_LEFT_POS = (-5, SCREEN_HEIGHT - HINT_PAGE_H - 50)
 HINT_PAGE_RIGHT_POS = (SCREEN_WIDTH - HINT_PAGE_W + 5, SCREEN_HEIGHT - HINT_PAGE_H - 50)
-HINT_FADE_SPEED  = 8               # alpha units per frame
-SLIDE_SPEED      = 7               # pixels per frame
-FLASH_HOLD_FRAMES = 50             # frames the success message stays fully visible
-FLASH_FADE_FRAMES = 15             # frames to fade the success message in/out
+HINT_FADE_SPEED  = 8
+SLIDE_SPEED = 7
+
+PAGE_TEXT_LEFT = (PAGE_LEFT_POS[0]+140,  PAGE_LEFT_POS[1]+170)
+PAGE_TEXT_RIGHT = (PAGE_RIGHT_POS[0]+20,  PAGE_RIGHT_POS[1]+170)
+PAGE_TEXT_BOX_SIZE = (180, 180)
+
+LEVEL_COMPLETE_TEXT_SPEED = .5
+LEVEL_COMPLETE_FONT_SIZE = 22
+LEVEL_COMPLETE_FONT_COLOR = (0, 0, 0)
+
+# Final "you beat the book" overlay (see ScribeMode.COMPLETE)
+COMPLETE_MESSAGE = "Congratulations! You've completed all the levels. Click ok to return to the main room."
+COMPLETE_MESSAGE_BOX = (SCREEN_WIDTH // 2 - 250, SCREEN_HEIGHT // 2 - 160, 500, 100)
+COMPLETE_MESSAGE_COLOUR = (255, 255, 255)
 
 # ── drag / tray constants ───────────────────────────────────────────────────
 # Grid is drawn inset from the page origin by this many pixels.
-GRID_OFFSET      = (0, 40)
+GRID_OFFSET = (0, 40)
 # Piece tray sits below the book area.
-TRAY_Y           = 475
-TRAY_PIECE_SIZE  = 64              # display size of each tray thumbnail (px)
-TRAY_SPACING     = 75              # centre-to-centre horizontal gap in tray
+TRAY_Y = 475
+TRAY_PIECE_SIZE = 64  # display size of each tray thumbnail (px)
+TRAY_SPACING = 75  # centre-to-centre horizontal gap in tray
 # Tint colours for drag feedback
-_COL_VALID   = (130, 200, 130, 160)
+_COL_VALID = (130, 200, 130, 160)
 _COL_INVALID = (220, 60,  60,  160)
 
 
@@ -44,6 +59,41 @@ def _scale_to_fit(surface: pygame.Surface, max_size: int) -> pygame.Surface:
     w, h = surface.get_size()
     scale = min(max_size / w, max_size / h)
     return pygame.transform.smoothscale(surface, (max(1, round(w * scale)), max(1, round(h * scale))))
+
+
+def _wrap_text(text: str, font, max_width: int) -> list:
+    """Word-wrap text into lines that each fit within max_width."""
+    words = text.split(" ")
+    lines = []
+    current = ""
+    for word in words:
+        candidate = f"{current} {word}".strip()
+        if not current or font.size(candidate)[0] <= max_width:
+            current = candidate
+        else:
+            lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines or [""]
+
+
+def _layout_text_block(text: str, box: tuple, font) -> list:
+    """Word-wrap text to box's width, then centre the whole block (both axes)
+    inside box = (x, y, w, h). Returns [(line, (x, y)), ...] top-left positions,
+    each line individually centred horizontally."""
+    box_x, box_y, box_w, box_h = box
+    lines = _wrap_text(text, font, box_w)
+    line_height = font.get_height()
+    total_h = line_height * len(lines)
+    start_y = box_y + (box_h - total_h) // 2
+    layout = []
+    for i, line in enumerate(lines):
+        line_w, _ = font.size(line)
+        x = box_x + (box_w - line_w) // 2
+        y = start_y + i * line_height
+        layout.append((line, (x, y)))
+    return layout
 
 
 # ── tiny per-frame effect objects ───────────────────────────────────────────
@@ -110,32 +160,53 @@ class _TextRevealEffect:
             self.done = True
 
 
-class _FlashLabelEffect:
-    """Fades a large centred message in, holds it, then fades it out."""
-    def __init__(self, text: str, font, colour: tuple = (255, 255, 255),
-                 hold_frames: int = FLASH_HOLD_FRAMES, fade_frames: int = FLASH_FADE_FRAMES):
-        self.label = font.render(text, True, colour)
-        self.hold  = hold_frames
-        self.fade  = max(1, fade_frames)
-        self.total = hold_frames + 2 * self.fade
-        self.frame = 0
-        self.done  = False
+class _TextFadeInEffect:
+    """Reveals word-wrapped text letter by letter inside a box (x, y, w, h):
+    wrapped to the box's width, the whole block centred vertically, each
+    line centred horizontally. Each new letter eases in via alpha.
+    Completes in duration_frames regardless of text length."""
+    def __init__(self, text: str, box: tuple, font, colour, duration_frames: int = 60):
+        self.text     = text
+        self.layout   = _layout_text_block(text, box, font)   # [(line, (x, y)), ...]
+        self.font     = font
+        self.colour   = colour
+        self.duration = max(1, duration_frames)
+        self.total_chars = sum(len(line) for line, _ in self.layout)
+        self.frame    = 0
+        self.done     = False
 
     def update(self, screen: pygame.Surface):
         if self.done:
             return
         self.frame += 1
-        if self.frame <= self.fade:
-            alpha = int(255 * self.frame / self.fade)
-        elif self.frame <= self.fade + self.hold:
-            alpha = 255
-        else:
-            alpha = max(0, int(255 * (self.total - self.frame) / self.fade))
-        img = self.label.copy()
-        img.set_alpha(alpha)
-        pos = (SCREEN_WIDTH // 2 - img.get_width() // 2, SCREEN_HEIGHT // 2 - img.get_height() // 2)
-        screen.blit(img, pos)
-        if self.frame >= self.total:
+        progress = min(1.0, self.frame / self.duration)
+        shown = progress * self.total_chars
+        remaining_full = int(shown)
+        partial = shown - remaining_full
+
+        for line, (x, y) in self.layout:
+            if remaining_full >= len(line):
+                if line:
+                    label = self.font.render(line, True, self.colour)
+                    screen.blit(label, (x, y))
+                remaining_full -= len(line)
+                continue
+
+            next_x = x
+            full_part = line[:remaining_full]
+            if full_part:
+                label = self.font.render(full_part, True, self.colour)
+                screen.blit(label, (x, y))
+                next_x += label.get_width()
+
+            if remaining_full < len(line) and partial > 0:
+                char_surf = self.font.render(line[remaining_full], True, self.colour)
+                char_surf.set_alpha(int(255 * partial))
+                screen.blit(char_surf, (next_x, y))
+
+            break   # lines after the currently-revealing one stay hidden
+
+        if self.frame >= self.duration:
             self.done = True
 
 
@@ -143,8 +214,9 @@ class _FlashLabelEffect:
 
 class ScribeMode(Enum):
     INTERACTIVE = 1   # player can drag/drop on current-level page
-    TRANSITION  = 2   # effects running; all input locked
-    REVIEW      = 3   # browsing old pages; no drag/drop
+    TRANSITION = 2   # effects running; all input locked
+    REVIEW = 3   # browsing old pages; no drag/drop
+    COMPLETE = 4 # shows ok buton on dark overlay
 
 
 # ── main scene ──────────────────────────────────────────────────────────────
@@ -203,6 +275,13 @@ class ScribeScene(Scene):
         self._mouse_down_pos: tuple[int, int] = (0, 0)
         # Set True during a level-advance transition; triggers tray rebuild when done.
         self._level_advance_pending: bool = False
+        # Level whose completion message should be stamped onto its snapshot
+        # once the current transition's reveal effect finishes.
+        self._pending_complete_text_level: int | None = None
+        # When True, the transition currently playing is the final-level
+        # completion — once it finishes, land on COMPLETE instead of
+        # INTERACTIVE so the dark overlay + ok button show up.
+        self._pending_complete_mode: bool = False
         # Screen-space rects for each tray slot — fixed, never rebuilt.
         self._tray_rects: list[pygame.Rect] = []
         # Cached scaled-down images, one per tray slot, rebuilt alongside rects.
@@ -253,17 +332,38 @@ class ScribeScene(Scene):
             hover_transforms=[tint_hover((5, 5, 5)), scale_hover(1.1)],
         )
 
+        self.dark_overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        self.dark_overlay.fill((0, 0, 0, 128))
+
+        self.ok_button = AnimatedButton(
+            surface=self.screen,
+            next_state="ok",
+            animation=Assets.animations.default_button,
+            x=SCREEN_WIDTH // 2 -100, y=SCREEN_HEIGHT // 2 - 50,
+            width=200, height=40,
+            text="ok",
+            hover_transforms=[tint_hover((5, 5, 5)), scale_hover(1.1)],
+        )
+
         # Kick off the opening text-reveal for level 0
         self._start_level_intro()
 
     # ── public loop interface ────────────────────────────────────────────────
 
     def update(self) -> str | None:
-        # Advance all running effects; switch back to INTERACTIVE when done
+        # Advance all running effects; switch back to INTERACTIVE (or
+        # COMPLETE, for the final level) when done
         if self.mode == ScribeMode.TRANSITION:
             if all(e.done for e in self.active_effects):
                 self.active_effects.clear()
-                self.mode = ScribeMode.INTERACTIVE
+                if self._pending_complete_mode:
+                    self.mode = ScribeMode.COMPLETE
+                    self._pending_complete_mode = False
+                else:
+                    self.mode = ScribeMode.INTERACTIVE
+                if self._pending_complete_text_level is not None:
+                    self._stamp_complete_text(self._pending_complete_text_level)
+                    self._pending_complete_text_level = None
                 if self._level_advance_pending:
                     self._on_level_loaded()
                     self._level_advance_pending = False
@@ -286,6 +386,26 @@ class ScribeScene(Scene):
         self._draw_dragging_piece()    # always on top
         self._draw_margin_pieces_options()
         self._draw_ui()
+
+        if self.mode == ScribeMode.COMPLETE:
+            self.screen.blit(self.dark_overlay, (0, 0))
+            for line, pos in _layout_text_block(COMPLETE_MESSAGE, COMPLETE_MESSAGE_BOX, FONT):
+                if line:
+                    label = FONT.render(line, True, COMPLETE_MESSAGE_COLOUR)
+                    self.screen.blit(label, pos)
+            self.ok_button.draw()
+
+        # xl, yl = PAGE_TEXT_LEFT
+        # xr, yr = PAGE_TEXT_RIGHT
+        # width, height = PAGE_TEXT_BOX_SIZE
+
+        # pygame.draw.rect(self.screen, (180, 165, 130), (xl, yl, width, height), 2)
+        # pygame.draw.rect(self.screen, (180, 165, 130), (xr, yr, width, height), 2)
+
+        #self.screen.blit(rect_surf, (xl, yl))
+        #self.screen.blit(rect_surf, (xr, yr),  pygame.draw.rect(self.screen, (180, 165, 130), (xr, yr, width, height), 2))
+
+
         pygame.mouse.set_visible(False)
         mx, my = pygame.mouse.get_pos()
         self.screen.blit(self._cursor_img, (mx-2, my-150))
@@ -312,36 +432,64 @@ class ScribeScene(Scene):
 
         return None
 
+    def _prev_flip_target(self) -> int | None:
+        """Level to land on if 'prev page' is clicked, or None if there's no
+        earlier spread to flip back to (two levels share one visible spread,
+        so this always jumps by a full spread — see _next_flip_target)."""
+        new_level = self.viewed_level - 2
+        return new_level if new_level >= 0 else None
+
+    def _next_flip_target(self) -> int | None:
+        """Level to land on if 'next page' is clicked, or None if there's no
+        later spread unlocked yet."""
+        max_unlocked = max(game_data.level_snapshots.keys(), default=-1)
+        max_page = max(max_unlocked, game_data.current_level)
+        new_level = self.viewed_level + 2
+        return new_level if new_level <= max_page else None
+
     def _current_clickables(self) -> list:
         btns = list(self.nav_buttons)
-        # Page-flip buttons always available unless mid-transition
+        # Page-flip buttons only shown when clicking them would actually
+        # flip to a different spread — not just switch focus within the
+        # currently-open one (both its pages are already on screen).
         if self.mode != ScribeMode.TRANSITION:
-            if self.viewed_level > 0:
+            if self._prev_flip_target() is not None:
                 btns.append(self.prev_page_btn)
-            max_unlocked = max(game_data.level_snapshots.keys(), default=-1)
-            max_page = max(max_unlocked, game_data.current_level)
-            if self.viewed_level < max_page:
+            if self._next_flip_target() is not None:
                 btns.append(self.next_page_btn)
         # Submit only when on current level page and interactive
         if (self.mode == ScribeMode.INTERACTIVE
                 and self.viewed_level == game_data.current_level):
             btns.append(self.submit_button)
+        if (self.mode == ScribeMode.COMPLETE
+                and self.viewed_level == game_data.current_level):
+            btns.append(self.ok_button)
         return btns
 
     def _dispatch(self, action: str) -> str | None:
+        if action in ("menu", "archive", "ok") and self.mode == ScribeMode.COMPLETE:
+            # Leaving the celebratory overlay (however the player leaves —
+            # "ok", or straight to a nav icon) — settle onto a normal mode
+            # now so the scene isn't stuck showing it next time it's visited.
+            self._go_to_page(self.viewed_level)
         if action == "menu":
             return "menu"
         if action == "archive":
             return "archive"
         if action == "submit":
             self._on_submit()
+        elif action == "ok":
+            return "archive"
         elif action == "prev_page":
-            self._go_to_page(self.viewed_level - 1)
+            new_level = self._prev_flip_target()
+            if new_level is not None:
+                Assets.sounds.page_turning.play()
+                self._go_to_page(new_level)
         elif action == "next_page":
-            max_unlocked = max(game_data.level_snapshots.keys(), default=-1)
-            max_page = max(max_unlocked, game_data.current_level)
-            if self.viewed_level < max_page:
-                self._go_to_page(self.viewed_level + 1)
+            new_level = self._next_flip_target()
+            if new_level is not None:
+                Assets.sounds.page_turning.play()
+                self._go_to_page(new_level)
         return None
 
     # ── submission logic ─────────────────────────────────────────────────────
@@ -360,10 +508,12 @@ class ScribeScene(Scene):
             self._start_level_advance_transition(prev_level=game_data.current_level - 1)
 
         elif result == SubmitResult.CORRECT_FINAL:
-            # No more levels — stay on final page, show completion, and
-            # retire the tray since there's nothing left to place.
-            self._start_hint_fade(game_data.current_level)
-            self.active_effects.append(_FlashLabelEffect("Book Complete!", FONT))
+            level = game_data.current_level
+            self._book_snapshots[level] = self._capture_book_page(game_data.current_puzzle)
+            self._start_hint_fade(level)
+            self.active_effects.append(self._make_complete_text_effect(level))
+            self._pending_complete_text_level = level
+            self._pending_complete_mode = True
             self._tray_types  = []
             self._tray_rects  = []
             self._tray_images = []
@@ -377,6 +527,44 @@ class ScribeScene(Scene):
             self._start_hint_fade(game_data.current_level)
 
     # ── transition builders ──────────────────────────────────────────────────
+
+    def _complete_text_and_font(self, level: int) -> tuple:
+        """(text, font) for a finished level's completion message."""
+        puzzle = self._puzzle_for(level)
+        text = (puzzle.level_complete_text if puzzle and puzzle.level_complete_text
+                else f"Level {level + 1} Complete")
+        font_size = LEVEL_COMPLETE_FONT_SIZE
+        font = pygame.font.Font(os.path.join(UI_PATH, "pixelfont.ttf"), font_size)
+        return text, font
+
+    def _complete_text_box(self, level: int) -> tuple:
+        """(x, y, w, h) box the completion message centres itself within,
+        anchored to whichever side (left/right) that level's page is on."""
+        side = "left" if level % 2 == 0 else "right"
+        page_x = PAGE_TEXT_LEFT[0] if side == "left" else PAGE_TEXT_RIGHT[0]
+        return (page_x, PAGE_TEXT_LEFT[1], PAGE_TEXT_BOX_SIZE[0], PAGE_TEXT_BOX_SIZE[1])
+
+    def _make_complete_text_effect(self, level: int) -> "_TextFadeInEffect":
+        """Build the letter-by-letter completion message for a finished level."""
+        text, font = self._complete_text_and_font(level)
+        box = self._complete_text_box(level)
+        return _TextFadeInEffect(text, box, font, LEVEL_COMPLETE_FONT_COLOR, len(text) // LEVEL_COMPLETE_TEXT_SPEED )
+
+    def _stamp_complete_text(self, level: int):
+        """Permanently draw the (now fully revealed) completion message onto
+        that level's frozen page snapshot, so it persists after the reveal
+        transition ends — visible any time that page is viewed again."""
+        surf = self._book_snapshots.get(level)
+        if surf is None:
+            return
+        text, font = self._complete_text_and_font(level)
+        box_x, box_y, box_w, box_h = self._complete_text_box(level)
+        page_origin = PAGE_LEFT_POS if level % 2 == 0 else PAGE_RIGHT_POS
+        local_box = (box_x - page_origin[0], box_y - page_origin[1], box_w, box_h)
+        for line, pos in _layout_text_block(text, local_box, font):
+            if line:
+                label = font.render(line, True, LEVEL_COMPLETE_FONT_COLOR)
+                surf.blit(label, pos)
 
     def _start_level_intro(self):
         """Run at scene init: text reveal on the first page only."""
@@ -394,7 +582,6 @@ class ScribeScene(Scene):
     def _start_hint_fade(self, level: int):
         """Cross-fade to the updated hint image (same-level stage update)."""
         self.mode = ScribeMode.TRANSITION
-        puzzle = game_data.current_puzzle
         side   = game_data.current_side
         pos    = HINT_PAGE_LEFT_POS if side == "left" else HINT_PAGE_RIGHT_POS
 
@@ -418,8 +605,8 @@ class ScribeScene(Scene):
 
     def _start_level_advance_transition(self, prev_level: int):
         """
-        Freeze the just-completed page and flash a success message over it.
-        The next level is revealed once the flash finishes — see
+        Freeze the just-completed page and play its completion message over
+        it. The next level is revealed once the message finishes — see
         _on_level_loaded, which is called from update() when the transition
         completes.
 
@@ -433,8 +620,15 @@ class ScribeScene(Scene):
         prev_puzzle = game_data.level_snapshots.get(prev_level)
         self._book_snapshots[prev_level] = self._capture_book_page(prev_puzzle)
 
-        self.active_effects = [_FlashLabelEffect("Page Complete!", FONT)]
+        self.active_effects = [self._make_complete_text_effect(prev_level)]
+        self._pending_complete_text_level = prev_level
         self._level_advance_pending = True
+
+    def _book_complete(self) -> bool:
+        """True once the final level has been solved — nothing left to place
+        anywhere in the book, so every page (including the last) is
+        view/flip-only from here on."""
+        return (game_data.num_levels - 1) in game_data.level_snapshots
 
     def _go_to_page(self, level: int):
         """Switch to review/interactive mode for a different page."""
@@ -447,7 +641,7 @@ class ScribeScene(Scene):
             self._hover_cells.clear()
             self._update_grid_hover()
         self.viewed_level = level
-        if level == game_data.current_level:
+        if level == game_data.current_level and not self._book_complete():
             self.mode = ScribeMode.INTERACTIVE
         else:
             self.mode = ScribeMode.REVIEW
@@ -529,11 +723,9 @@ class ScribeScene(Scene):
 
         # Page-flip buttons
         if self.mode != ScribeMode.TRANSITION:
-            if self.viewed_level > 0:
+            if self._prev_flip_target() is not None:
                 self.prev_page_btn.draw()
-            max_unlocked = max(game_data.level_snapshots.keys(), default=-1)
-            max_page = max(max_unlocked, game_data.current_level)
-            if self.viewed_level < max_page:
+            if self._next_flip_target() is not None:
                 self.next_page_btn.draw()
 
         # Submit button only on active puzzle page
@@ -562,6 +754,7 @@ class ScribeScene(Scene):
         if mode_text:
             draw_label(self, SCREEN_WIDTH // 2 - 60, BORDER + 24, mode_text, None)
 
+        
     # ── drag helpers ─────────────────────────────────────────────────────────
 
     def _grid_origin(self) -> tuple[int, int]:
