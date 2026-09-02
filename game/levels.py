@@ -135,7 +135,7 @@ def new_level_0_data():
         grid=grid_from_image(Assets.animations.solution1, pixel_res=64),
         solution=solution_from_idmap(Assets.animations.solution1_idmap, pixel_res=64),
         page_text="The Book of Hours",
-        level_complete_text="The femaale saints in prayer books stood as models to teacha  woman how to live her life, often exemplifying the virtues of chastity and fidelity.",
+        level_complete_text="The femaale saints in prayer books stood as models to teach a woman how to live her life, often exemplifying the virtues of chastity and fidelity.",
     )
 
 
@@ -154,7 +154,7 @@ def new_level_1_data():
             Assets.animations.level_2_hint_2,
             Assets.animations.level_2_hint_3,
         ],
-        trust_points=[10, 5, 1],
+        trust_points=[15, 10, 5],
         grid=grid_from_image(Assets.animations.solution2, pixel_res=64),
         solution=solution_from_idmap(Assets.animations.solution2_idmap, pixel_res=64),
         page_text="Psalter of Coldingham",
@@ -181,7 +181,7 @@ def new_level_2_data():
             Assets.animations.level_3_hint_2,
             Assets.animations.level_3_hint_3,
         ],
-        trust_points=[10, 5, 1],
+        trust_points=[20, 15, 10],
         grid=grid_from_image(Assets.animations.solution3, pixel_res=64),
         solution=solution_from_idmap(Assets.animations.solution3_idmap, pixel_res=64),
         page_text="Chronicle of the Marches",
