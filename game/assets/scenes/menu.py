@@ -107,7 +107,25 @@ class MenuScene(Scene):
 
         # display text:
         text = [
-            "We love illuminated manuscripts!",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "Click the PAINTBRUSH icon to start the levels.",
+            "",
+            "The number of TRUST POINTS awarded decreases with each incorrect answer.",
+            "",
+            "To spend your TRUST POINTS, click the BOOK icon to return to the archive."
         ]
         for i, line in enumerate(text):
             self.screen.blit(FONT.render(line,
