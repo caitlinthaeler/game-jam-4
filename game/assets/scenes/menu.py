@@ -61,7 +61,7 @@ class MenuScene(Scene):
         self.back_button = BackButton(self.screen, MenuState.CHOICES) # defaults only
         self.grain_slider = Slider(
             pygame.Rect(BORDER*4, BORDER*7+24, SCREEN_WIDTH // 2, 24),
-            value=self._vhs.intensity if self._vhs else 0.8,
+            value=self._vhs.intensity if self._vhs else 0.65,
             on_change=self._vhs.set_intensity if self._vhs else None,
             label_font=FONT,
         )

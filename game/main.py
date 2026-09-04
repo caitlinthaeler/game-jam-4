@@ -17,7 +17,7 @@ from assets.scenes.introduction import IntroductionScene
 from game_manager import NewGame
 
 clock = pygame.time.Clock()
-vhs = VHSEffect(screen.get_size(), intensity=0.8)
+vhs = VHSEffect(screen.get_size(), intensity=0.65)
 
 def _present():
     vhs.apply(screen)
